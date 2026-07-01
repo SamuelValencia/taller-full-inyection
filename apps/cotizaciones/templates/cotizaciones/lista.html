@@ -1,0 +1,66 @@
+{% extends "base.html" %}{% block title %}Cotizaciones{% endblock %}{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Cotizaciones</h1>
+  <a href="{% url 'cotizaciones:crear' %}" class="btn btn-success fw-semibold"><i class="fas fa-plus me-1"></i>Nueva cotización</a>
+</div>
+
+<!-- Filtros rápidos -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="{% url 'cotizaciones:lista' %}" class="btn btn-sm {% if not estado_filtro %}btn-dark{% else %}btn-outline-dark{% endif %}">Todas</a>
+  <a href="?estado=BORRADOR" class="btn btn-sm {% if estado_filtro == 'BORRADOR' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Borrador</a>
+  <a href="?estado=ENVIADA" class="btn btn-sm {% if estado_filtro == 'ENVIADA' %}btn-info{% else %}btn-outline-info{% endif %}">Enviadas</a>
+  <a href="?estado=APROBADA" class="btn btn-sm {% if estado_filtro == 'APROBADA' %}btn-success{% else %}btn-outline-success{% endif %}">Aprobadas</a>
+  <a href="?estado=RECHAZADA" class="btn btn-sm {% if estado_filtro == 'RECHAZADA' %}btn-danger{% else %}btn-outline-danger{% endif %}">Rechazadas</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 dataTable">
+        <thead class="table-light">
+          <tr>
+            <th>N° Cotización</th>
+            <th class="d-none d-md-table-cell">Cliente</th>
+            <th>Vehículo</th>
+            <th>Estado</th>
+            <th class="d-none d-lg-table-cell">Válida hasta</th>
+            <th class="text-end">Total</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cotizaciones %}
+          <tr>
+            <td><a href="{% url 'cotizaciones:detalle' c.pk %}" class="fw-semibold text-decoration-none">{{ c.numero_cotizacion }}</a></td>
+            <td class="d-none d-md-table-cell">{{ c.cliente.nombre_completo }}</td>
+            <td><span class="badge bg-dark">{{ c.vehiculo.placa }}</span></td>
+            <td>
+              {% if c.estado == 'BORRADOR' %}<span class="badge bg-secondary">Borrador</span>
+              {% elif c.estado == 'ENVIADA' %}<span class="badge bg-info text-dark">Enviada</span>
+              {% elif c.estado == 'APROBADA' %}<span class="badge bg-success">Aprobada</span>
+              {% elif c.estado == 'RECHAZADA' %}<span class="badge bg-danger">Rechazada</span>
+              {% else %}<span class="badge bg-warning text-dark">{{ c.get_estado_display }}</span>{% endif %}
+            </td>
+            <td class="d-none d-lg-table-cell small">{{ c.fecha_validez|date:"d/m/Y"|default:"—" }}</td>
+            <td class="text-end fw-semibold">${{ c.total|floatformat:2 }}</td>
+            <td class="text-center">
+              <div class="btn-group" role="group">
+                <a href="{% url 'cotizaciones:detalle' c.pk %}" class="btn btn-sm btn-secondary" title="Ver"><i class="fas fa-eye"></i></a>
+                <a href="{% url 'cotizaciones:editar' c.pk %}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                <a href="{% url 'cotizaciones:pdf' c.pk %}" class="btn btn-sm btn-primary" title="PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>
+                {% if c.estado == 'APROBADA' and not c.orden_generada %}
+                <a href="{% url 'cotizaciones:convertir_orden' c.pk %}" class="btn btn-sm btn-success" title="Convertir a orden"><i class="fas fa-exchange-alt"></i></a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-file-invoice fa-2x d-block mb-2"></i>Sin cotizaciones registradas</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer bg-white text-muted small">Total: {{ cotizaciones.count }} cotización(es)</div>
+</div>
+{% endblock %}

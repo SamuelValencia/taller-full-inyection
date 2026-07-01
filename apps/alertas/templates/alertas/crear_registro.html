@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Registro de Mantenimiento{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-0"><i class="fas fa-plus-circle me-2 text-warning"></i>Nuevo Registro de Mantenimiento</h1>
+    <small class="text-muted">Registre un mantenimiento realizado y programe el recordatorio automático al cliente.</small>
+  </div>
+  <a href="{% url 'alertas:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-8">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Vehículo y cliente -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-car me-2 text-dark"></i>Vehículo</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Vehículo <span class="text-danger">*</span></label>
+              <select name="vehiculo" id="id_vehiculo" class="form-select" required>
+                <option value="">— Seleccione un vehículo —</option>
+                {% for v in vehiculos %}
+                <option value="{{ v.pk }}">{{ v.placa }} — {{ v.marca }} {{ v.modelo }} ({{ v.cliente.nombre_completo }})</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datos del mantenimiento -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-wrench me-2 text-warning"></i>Datos del Mantenimiento</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Tipo de mantenimiento <span class="text-danger">*</span></label>
+              <input type="text" name="tipo_mantenimiento" class="form-control"
+                     value="Mantenimiento preventivo" required
+                     placeholder="Ej: Mantenimiento preventivo, Cambio de aceite...">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Fecha del mantenimiento <span class="text-danger">*</span></label>
+              <input type="date" name="fecha_mantenimiento" class="form-control" value="{{ hoy }}" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Kilometraje al momento</label>
+              <div class="input-group">
+                <input type="number" name="kilometraje_mantenimiento" class="form-control" value="0" min="0">
+                <span class="input-group-text">km</span>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Descripción de los trabajos realizados</label>
+              <textarea name="descripcion_trabajos" class="form-control" rows="3"
+                        placeholder="Ej: Cambio de aceite 10W-40&#10;Cambio de filtro de aceite&#10;Cambio de filtro de aire&#10;Limpieza de frenos"></textarea>
+              <div class="form-text">Detalle los servicios realizados. Esta información se mostrará en el historial del vehículo.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intervalo del próximo mantenimiento -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-calendar-alt me-2 text-primary"></i>Próximo Mantenimiento</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Tipo de intervalo <span class="text-danger">*</span></label>
+              <select name="tipo_intervalo" id="id_tipo_intervalo" class="form-select" required>
+                <option value="DIAS">Por tiempo (días)</option>
+                <option value="KM">Por kilometraje</option>
+                <option value="AMBOS">Por tiempo y kilometraje</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6" id="campo_dias">
+              <label class="form-label fw-semibold">Intervalo en días</label>
+              <div class="input-group">
+                <input type="number" name="intervalo_dias" id="id_intervalo_dias" class="form-control" value="90" min="1">
+                <span class="input-group-text">días</span>
+              </div>
+              <div class="form-text">
+                <span id="hint_dias">90 días = 3 meses</span>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6" id="campo_km" style="display:none">
+              <label class="form-label fw-semibold">Intervalo en kilómetros</label>
+              <div class="input-group">
+                <input type="number" name="intervalo_km" id="id_intervalo_km" class="form-control" value="5000" min="100">
+                <span class="input-group-text">km</span>
+              </div>
+              <div class="form-text">Ej: 5000, 10000</div>
+            </div>
+
+            <div class="col-12">
+              <div class="alert alert-info py-2 small mb-0" id="preview_proximo">
+                <i class="fas fa-info-circle me-1"></i>
+                El próximo mantenimiento quedará programado para: <strong id="fecha_calculada">calculando...</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canal de envío -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-paper-plane me-2 text-success"></i>Recordatorio al Cliente</div>
+        <div class="card-body">
+          <label class="form-label fw-semibold">Canal de envío del recordatorio</label>
+          <div class="row g-2">
+            <div class="col-12 col-md-4">
+              <div class="form-check border rounded p-3">
+                <input class="form-check-input" type="radio" name="canal_envio" id="canal_email" value="EMAIL" checked>
+                <label class="form-check-label fw-semibold" for="canal_email">
+                  <i class="fas fa-envelope me-2 text-primary"></i>Correo electrónico
+                </label>
+                <div class="text-muted small">Envía email al cliente</div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-check border rounded p-3">
+                <input class="form-check-input" type="radio" name="canal_envio" id="canal_wa" value="WHATSAPP">
+                <label class="form-check-label fw-semibold" for="canal_wa">
+                  <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp
+                </label>
+                <div class="text-muted small">Requiere configuración</div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-check border rounded p-3">
+                <input class="form-check-input" type="radio" name="canal_envio" id="canal_ambos" value="AMBOS">
+                <label class="form-check-label fw-semibold" for="canal_ambos">
+                  <i class="fas fa-broadcast-tower me-2 text-info"></i>Ambos canales
+                </label>
+                <div class="text-muted small">Email + WhatsApp</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-warning fw-semibold px-4">
+          <i class="fas fa-save me-2"></i>Guardar y programar recordatorio
+        </button>
+        <a href="{% url 'alertas:lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Panel informativo -->
+  <div class="col-12 col-lg-4">
+    <div class="card border-0 shadow-sm border-start border-4 border-warning mb-3">
+      <div class="card-header bg-warning bg-opacity-10 fw-semibold py-2 text-warning">
+        <i class="fas fa-info-circle me-2"></i>¿Cuándo usar este formulario?
+      </div>
+      <div class="card-body small">
+        <p>Los registros se crean <strong>automáticamente</strong> al finalizar una Orden de Trabajo de tipo <em>Mantenimiento Preventivo</em>.</p>
+        <p class="mb-0">Use este formulario para registrar mantenimientos realizados <strong>manualmente</strong> o de vehículos atendidos en otra ocasión.</p>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-lightbulb me-2 text-warning"></i>Intervalos recomendados</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0 small">
+          <thead class="table-light"><tr><th>Mantenimiento</th><th>Intervalo</th></tr></thead>
+          <tbody>
+            <tr><td>Cambio de aceite</td><td>60–90 días / 5.000 km</td></tr>
+            <tr><td>Filtros (aire, aceite)</td><td>90 días / 10.000 km</td></tr>
+            <tr><td>Revisión de frenos</td><td>6 meses / 20.000 km</td></tr>
+            <tr><td>Revisión general</td><td>6–12 meses</td></tr>
+            <tr><td>Bujías</td><td>30.000–60.000 km</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tipoIntervalo = document.getElementById("id_tipo_intervalo");
+  const campoDias = document.getElementById("campo_dias");
+  const campoKm = document.getElementById("campo_km");
+  const inputDias = document.getElementById("id_intervalo_dias");
+  const hintDias = document.getElementById("hint_dias");
+  const fechaCalc = document.getElementById("fecha_calculada");
+  const inputFecha = document.querySelector("[name='fecha_mantenimiento']");
+
+  const MESES = {60:"2 meses",90:"3 meses",120:"4 meses",180:"6 meses",365:"1 año"};
+
+  function actualizarCampos() {
+    const tipo = tipoIntervalo.value;
+    campoDias.style.display = (tipo === "KM") ? "none" : "block";
+    campoKm.style.display = (tipo === "DIAS") ? "none" : "block";
+    calcularFecha();
+  }
+
+  function calcularFecha() {
+    const dias = parseInt(inputDias.value) || 0;
+    const fechaBase = inputFecha.value;
+    if (!fechaBase || !dias) { fechaCalc.textContent = "—"; return; }
+    const d = new Date(fechaBase);
+    d.setDate(d.getDate() + dias);
+    const opciones = { day: "2-digit", month: "2-digit", year: "numeric" };
+    fechaCalc.textContent = d.toLocaleDateString("es-EC", opciones);
+    hintDias.textContent = MESES[dias] ? `${dias} días = ${MESES[dias]}` : `${dias} días`;
+  }
+
+  tipoIntervalo.addEventListener("change", actualizarCampos);
+  inputDias.addEventListener("input", calcularFecha);
+  inputFecha.addEventListener("change", calcularFecha);
+  actualizarCampos();
+});
+</script>
+{% endblock %}

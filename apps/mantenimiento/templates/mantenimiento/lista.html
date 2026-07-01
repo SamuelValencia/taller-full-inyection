@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block title %}Mantenimiento preventivo{% endblock %}{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-tools me-2 text-warning"></i>Mantenimiento preventivo</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'mantenimiento:crear' %}" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i>Nuevo programa</a>
+    <a href="{% url 'mantenimiento:registrar_historial' %}" class="btn btn-primary"><i class="fas fa-history me-1"></i>Registrar mantenimiento</a>
+    <a href="{% url 'mantenimiento:tipos' %}" class="btn btn-secondary"><i class="fas fa-cog me-1"></i>Tipos</a>
+  </div>
+</div>
+<div class="card border-0 shadow-sm"><div class="card-body p-0">
+<div class="table-responsive"><table class="table table-hover align-middle mb-0 dataTable">
+<thead class="table-light"><tr><th>Vehículo</th><th>Servicio</th><th>Último km</th><th>Próximo km</th><th>Próxima fecha</th><th>Estado</th><th class="text-center">Acciones</th></tr></thead>
+<tbody>
+{% for p in programas %}
+<tr>
+  <td><a href="{% url 'vehiculos:detalle' p.vehiculo.pk %}"><span class="badge bg-dark">{{ p.vehiculo.placa }}</span></a> {{ p.vehiculo.descripcion_corta }}</td>
+  <td>{{ p.tipo_servicio.nombre }}</td>
+  <td>{{ p.ultimo_km|floatformat:0|default:"—" }} km</td>
+  <td>{% if p.proximo_km %}<strong>{{ p.proximo_km|floatformat:0 }} km</strong>{% else %}—{% endif %}</td>
+  <td>{{ p.proxima_fecha|date:"d/m/Y"|default:"—" }}</td>
+  <td>
+    {% if p.estado == 'VENCIDO' %}<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Vencido</span>
+    {% elif p.estado == 'PROXIMO' %}<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Próximo</span>
+    {% else %}<span class="badge bg-success"><i class="fas fa-check me-1"></i>Al día</span>{% endif %}
+  </td>
+  <td class="text-center">
+    <a href="{% url 'mantenimiento:editar' p.pk %}" class="btn btn-sm btn-warning me-1"><i class="fas fa-edit"></i></a>
+    <a href="{% url 'mantenimiento:registrar_historial' %}?vehiculo={{ p.vehiculo.pk }}&tipo={{ p.tipo_servicio.pk }}" class="btn btn-sm btn-primary" title="Registrar servicio"><i class="fas fa-wrench"></i></a>
+  </td>
+</tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Sin programas de mantenimiento</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}

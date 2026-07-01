@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Repuestos{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mb-md-4 gap-2">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-box me-2 text-primary"></i>Repuestos</h1>
+  <a href="{% url 'inventario:crear_repuesto' %}" class="btn btn-primary fw-semibold btn-sm btn-md-auto"><i class="fas fa-plus me-1"></i>Nuevo Repuesto</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-0 pt-3">
+    <form method="get" class="row g-2">
+      <div class="col-12 col-md-4">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Código, nombre, marca..." value="{{ query }}">
+        </div>
+      </div>
+      <div class="col-12 col-md-3">
+        <select name="categoria" class="form-select">
+          <option value="">Todas las categorías</option>
+          {% for cat in categorias %}
+          <option value="{{ cat.id }}" {% if categoria_seleccionada == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+      </div>
+    </form>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th class="d-none d-md-table-cell">Categoría</th>
+            <th>Stock</th>
+            <th class="d-none d-md-table-cell">Precio Venta</th>
+            <th class="d-none d-md-table-cell">Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for repuesto in repuestos %}
+          <tr>
+            <td><strong>{{ repuesto.codigo }}</strong></td>
+            <td>{{ repuesto.nombre }}</td>
+            <td class="d-none d-md-table-cell">{{ repuesto.categoria.nombre|default:"—" }}</td>
+            <td>
+              <span class="badge {% if repuesto.stock_bajo %}bg-danger{% else %}bg-success{% endif %}">
+                {{ repuesto.stock_actual }}
+              </span>
+              <small class="text-muted d-block">Mín: {{ repuesto.stock_minimo }}</small>
+            </td>
+            <td class="d-none d-md-table-cell fw-semibold">${{ repuesto.precio_venta|floatformat:2 }}</td>
+            <td class="d-none d-md-table-cell">
+              {% if repuesto.stock_bajo %}
+              <span class="badge bg-danger">Stock bajo</span>
+              {% else %}
+              <span class="badge bg-success">OK</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="btn-group" role="group">
+                <a href="{% url 'inventario:detalle_repuesto' repuesto.pk %}" class="btn btn-sm btn-secondary" title="Ver"><i class="fas fa-eye"></i></a>
+                <a href="{% url 'inventario:editar_repuesto' repuesto.pk %}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No se encontraron repuestos</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

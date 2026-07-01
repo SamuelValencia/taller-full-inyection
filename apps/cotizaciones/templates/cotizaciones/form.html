@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-0"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>{{ titulo }}</h1>
+    {% if not cotizacion %}
+    <small class="text-muted">Complete los datos del encabezado; luego agregará los servicios y repuestos con sus precios.</small>
+    {% endif %}
+  </div>
+  <a href="{% url 'cotizaciones:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+</div>
+
+{% if not cotizacion %}
+<!-- Indicador de pasos -->
+<div class="d-flex align-items-center gap-3 mb-4">
+  <div class="d-flex align-items-center gap-2">
+    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold" style="width:32px;height:32px">1</div>
+    <span class="fw-semibold text-success">Datos del encabezado</span>
+  </div>
+  <div class="flex-grow-1 border-top border-2 border-secondary opacity-25"></div>
+  <div class="d-flex align-items-center gap-2 opacity-50">
+    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold" style="width:32px;height:32px">2</div>
+    <span class="fw-semibold">Agregar servicios y repuestos</span>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <!-- Columna principal: formulario -->
+  <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2">
+        <i class="fas fa-id-card me-2 text-success"></i>Datos del cliente y vehículo
+      </div>
+      <div class="card-body p-3 p-md-4">
+        <form method="post" novalidate id="form-cotizacion">
+          {% csrf_token %}
+          <div class="row g-3">
+
+            <!-- Cliente -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">
+                Cliente <span class="text-danger">*</span>
+              </label>
+              {{ form.cliente }}
+              {% if form.cliente.errors %}<div class="text-danger small mt-1">{{ form.cliente.errors }}</div>{% endif %}
+              <div class="form-text">Seleccione el cliente propietario del vehículo.</div>
+            </div>
+
+            <!-- Vehículo -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">
+                Vehículo <span class="text-danger">*</span>
+              </label>
+              {{ form.vehiculo }}
+              {% if form.vehiculo.errors %}<div class="text-danger small mt-1">{{ form.vehiculo.errors }}</div>{% endif %}
+              <div class="form-text" id="vehiculo-hint">Primero seleccione un cliente.</div>
+            </div>
+
+            <!-- Válida hasta -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Válida hasta</label>
+              {{ form.fecha_validez }}
+              <div class="form-text">Dejar en blanco si no tiene fecha límite.</div>
+            </div>
+
+            <!-- Descuento -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Descuento global ($)</label>
+              {{ form.descuento }}
+              <div class="form-text">Descuento aplicado sobre el total de la cotización.</div>
+            </div>
+
+            <!-- Aplica IVA -->
+            <div class="col-12 col-md-6">
+              <div class="form-check form-switch mt-2">
+                {{ form.aplica_iva }}
+                <label class="form-check-label fw-semibold" for="{{ form.aplica_iva.id_for_label }}">
+                  Aplica IVA (15%)
+                </label>
+              </div>
+              <div class="form-text">Marcar si la cotización debe incluir IVA del 15%.</div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Descripción general del trabajo</label>
+              {{ form.descripcion }}
+              <div class="form-text">Resumen del trabajo a realizar (ej: revisión de motor, cambio de embrague, etc.).</div>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="col-12">
+              <label class="form-label fw-semibold">Observaciones</label>
+              {{ form.observaciones }}
+              <div class="form-text">Notas adicionales para el cliente o el taller.</div>
+            </div>
+
+          </div><!-- /row -->
+          <hr class="mt-4">
+          <div class="d-flex flex-column flex-md-row gap-2 align-items-md-center">
+            <button type="submit" class="btn btn-success fw-semibold px-4">
+              <i class="fas fa-arrow-right me-2"></i>
+              {% if cotizacion %}Guardar cambios{% else %}Guardar y agregar ítems →{% endif %}
+            </button>
+            <a href="{% url 'cotizaciones:lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+            {% if cotizacion %}
+            <a href="{% url 'cotizaciones:detalle' cotizacion.pk %}" class="ms-auto btn btn-outline-primary btn-sm">
+              <i class="fas fa-list me-1"></i>Ver detalle completo
+            </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna lateral: previsualización del paso 2 -->
+  <div class="col-12 col-lg-4">
+    {% if cotizacion %}
+    <!-- En edición: resumen de ítems actuales -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2">
+        <i class="fas fa-list me-2 text-warning"></i>Ítems de la cotización
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush small">
+          {% for det in cotizacion.detalles.all %}
+          <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <span class="badge {% if det.tipo == 'SERVICIO' %}bg-warning text-dark{% else %}bg-secondary{% endif %} me-1">
+                {{ det.get_tipo_display }}
+              </span>
+              {{ det.descripcion }}
+            </div>
+            <span class="fw-semibold text-nowrap ms-2">$ {{ det.subtotal|floatformat:2 }}</span>
+          </div>
+          {% empty %}
+          <div class="list-group-item text-muted text-center py-3">
+            <i class="fas fa-inbox d-block mb-1 opacity-25"></i>Sin ítems aún
+          </div>
+          {% endfor %}
+        </div>
+        {% if cotizacion.detalles.exists %}
+        <div class="p-2 border-top text-end">
+          <strong>Total: $ {{ cotizacion.total|floatformat:2 }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <!-- En creación: explicación del paso 2 -->
+    <div class="card border-0 shadow-sm border-start border-4 border-success">
+      <div class="card-header bg-success bg-opacity-10 fw-semibold py-2 text-success">
+        <i class="fas fa-info-circle me-2"></i>¿Cómo funciona?
+      </div>
+      <div class="card-body small">
+        <p class="mb-3">Al guardar el encabezado, pasará al <strong>Paso 2</strong> donde podrá agregar los ítems de la cotización:</p>
+        <!-- Preview del paso 2 -->
+        <div class="rounded border bg-light p-2 mb-3">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0" style="font-size:0.75rem">
+              <thead class="table-success">
+                <tr>
+                  <th>Tipo</th>
+                  <th>Descripción</th>
+                  <th class="text-end">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge bg-warning text-dark" style="font-size:.65rem">Servicio</span></td>
+                  <td class="text-muted fst-italic">Cambio de aceite</td>
+                  <td class="text-end">$ 25,00</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-secondary" style="font-size:.65rem">Repuesto</span></td>
+                  <td class="text-muted fst-italic">Filtro de aceite</td>
+                  <td class="text-end">$ 12,00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="text-end fw-bold mt-1" style="font-size:.8rem">TOTAL: $ 37,00</div>
+        </div>
+        <ul class="mb-0 ps-3">
+          <li class="mb-1"><strong>Servicios</strong> — desde el catálogo del taller (precio incluido automáticamente).</li>
+          <li class="mb-1"><strong>Repuestos</strong> — texto libre con precio personalizado.</li>
+          <li><strong>IVA 15%</strong> — se calcula automáticamente si aplica.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3 border-start border-4 border-primary">
+      <div class="card-body small">
+        <h6 class="fw-bold mb-2"><i class="fas fa-route me-2 text-primary"></i>Flujo completo</h6>
+        <div class="d-flex flex-column gap-1">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success rounded-pill">✓</span>
+            <span>Seleccionar cliente y vehículo</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 opacity-50">
+            <span class="badge bg-secondary rounded-pill">2</span>
+            <span>Agregar servicios y repuestos con precios</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 opacity-50">
+            <span class="badge bg-secondary rounded-pill">3</span>
+            <span>Aprobar cotización</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 opacity-50">
+            <span class="badge bg-secondary rounded-pill">4</span>
+            <span>Generar Orden de Trabajo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const clienteEl = document.getElementById("id_cliente");
+  const vehiculoEl = document.getElementById("id_vehiculo");
+  const vehiculoHint = document.getElementById("vehiculo-hint");
+  if (!clienteEl || !vehiculoEl) return;
+
+  function cargarVehiculos(clienteId, vehiculoSeleccionado) {
+    if (!clienteId) {
+      vehiculoEl.innerHTML = '<option value="">— Seleccione un cliente primero —</option>';
+      if (vehiculoHint) vehiculoHint.textContent = "Primero seleccione un cliente.";
+      return;
+    }
+    vehiculoEl.innerHTML = '<option value="">Cargando vehículos...</option>';
+    fetch("{% url 'ordenes:vehiculos_por_cliente' %}?cliente=" + encodeURIComponent(clienteId))
+      .then(r => r.json())
+      .then(data => {
+        vehiculoEl.innerHTML = '<option value="">— Seleccione un vehículo —</option>';
+        if (data.results && data.results.length > 0) {
+          data.results.forEach(item => {
+            const o = document.createElement("option");
+            o.value = item.id;
+            o.textContent = item.text;
+            if (vehiculoSeleccionado && item.id == vehiculoSeleccionado) o.selected = true;
+            vehiculoEl.appendChild(o);
+          });
+          if (vehiculoHint) vehiculoHint.textContent = data.results.length + " vehículo(s) disponible(s).";
+        } else {
+          vehiculoEl.innerHTML = '<option value="">— Sin vehículos registrados —</option>';
+          if (vehiculoHint) vehiculoHint.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Este cliente no tiene vehículos. <a href="{% url "vehiculos:crear" %}">Registrar vehículo</a></span>';
+        }
+      })
+      .catch(() => {
+        vehiculoEl.innerHTML = '<option value="">Error al cargar vehículos</option>';
+      });
+  }
+
+  // Al cambiar cliente
+  clienteEl.addEventListener("change", function () {
+    cargarVehiculos(this.value, null);
+  });
+
+  // Al cargar la página: si hay cliente preseleccionado (edición), cargar vehículos
+  const clienteInicial = clienteEl.value;
+  const vehiculoInicial = vehiculoEl.value;
+  if (clienteInicial) {
+    cargarVehiculos(clienteInicial, vehiculoInicial);
+  }
+});
+</script>
+{% endblock %}

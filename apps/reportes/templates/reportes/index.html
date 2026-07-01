@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% block title %}Reportes{% endblock %}{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Reportes</h1>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card border-0 shadow-sm text-center p-4"><i class="fas fa-clipboard-list fa-3x text-warning mb-2"></i><h4 class="fw-bold">{{ total_ordenes }}</h4><p class="text-muted mb-0">Total órdenes</p></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm text-center p-4"><i class="fas fa-users fa-3x text-primary mb-2"></i><h4 class="fw-bold">{{ total_clientes }}</h4><p class="text-muted mb-0">Clientes activos</p></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm text-center p-4"><i class="fas fa-car fa-3x text-success mb-2"></i><h4 class="fw-bold">{{ total_vehiculos }}</h4><p class="text-muted mb-0">Vehículos registrados</p></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm text-center p-4"><i class="fas fa-check-circle fa-3x text-info mb-2"></i><h4 class="fw-bold">{{ ordenes_por_estado.entregadas }}</h4><p class="text-muted mb-0">Órdenes entregadas</p></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-file-pdf me-2 text-danger"></i>Reportes disponibles</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Genera reportes PDF directamente desde cada módulo:</p>
+        <ul class="list-unstyled">
+          <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Desde <a href="{% url 'ordenes:lista' %}"><strong>Órdenes</strong></a> → botón <span class="badge bg-danger"><i class="fas fa-file-pdf"></i> PDF</span> en cada orden</li>
+          <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Desde <a href="{% url 'vehiculos:lista' %}"><strong>Vehículos</strong></a> → detalle del vehículo → historial PDF</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-chart-pie me-2 text-primary"></i>Estado de órdenes</div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-2"><span>Pendientes</span><span class="badge bg-secondary">{{ ordenes_por_estado.pendientes }}</span></div>
+        <div class="d-flex justify-content-between mb-2"><span>En proceso</span><span class="badge bg-primary">{{ ordenes_por_estado.en_proceso }}</span></div>
+        <div class="d-flex justify-content-between mb-2"><span>Finalizadas</span><span class="badge bg-success">{{ ordenes_por_estado.finalizadas }}</span></div>
+        <div class="d-flex justify-content-between"><span>Entregadas</span><span class="badge bg-info text-dark">{{ ordenes_por_estado.entregadas }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

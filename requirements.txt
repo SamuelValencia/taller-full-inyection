@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────
+#  FUEL INJECTION – Taller Mecánico
+#  Requirements
+# ─────────────────────────────────────────────
+
+# Core Django
+Django==4.2.13
+djangorestframework==3.15.2
+
+# Base de datos
+psycopg2-binary==2.9.12
+
+# Variables de entorno
+python-decouple==3.8
+
+# Autenticación / Permisos
+django-guardian==2.4.0
+
+# Generación de PDF
+reportlab==4.2.2
+xhtml2pdf==0.2.16
+
+# Filtros y búsquedas
+django-filter==24.2
+
+# Fechas y horas
+python-dateutil==2.9.0
+
+# Utilidades
+Pillow==10.4.0
+django-crispy-forms==2.1
+crispy-bootstrap5==2024.2
+
+# Correo
+django-anymail[mailtrap]==11.1
+
+# CORS (si se expone la API REST)
+django-cors-headers==4.4.0
+
+# Widget de fechas
+django-widget-tweaks==1.5.0
+
+# Exportación Excel
+openpyxl==3.1.4
+
+# Dev
+django-debug-toolbar==4.4.2

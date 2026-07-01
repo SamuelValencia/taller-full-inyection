@@ -1,0 +1,44 @@
+<nav class="sb-topnav navbar navbar-expand navbar-dark">
+  <a class="navbar-brand ps-3 ps-md-4 fw-bold d-flex align-items-center" href="{% url 'dashboard:index' %}">
+    <i class="fas fa-wrench me-2 me-md-3" style="color: var(--color-yellow-gold);"></i>
+    <span class="d-none d-sm-inline">Fuel Injection</span>
+    <span class="d-sm-none">FI</span>
+  </a>
+  <button class="btn btn-link btn-sm order-1 order-lg-0 me-3 me-lg-0" id="sidebarToggle">
+    <i class="fas fa-bars" style="color: var(--color-yellow-gold);"></i>
+  </button>
+  <div class="ms-auto me-0 me-md-3 my-2 my-md-0 d-flex align-items-center gap-2 gap-md-3">
+    <!-- Alertas -->
+    <div class="dropdown d-inline">
+      <a class="btn btn-sm btn-outline-warning position-relative" href="{% url 'alertas:lista' %}" title="Alertas">
+        <i class="fas fa-bell"></i>
+        {% if alertas_no_leidas > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          {{ alertas_no_leidas }}
+        </span>
+        {% endif %}
+      </a>
+    </div>
+    <!-- Usuario -->
+    <div class="dropdown d-inline">
+      <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-user-circle me-1 d-none d-sm-inline"></i>
+        <span class="d-none d-md-inline">{{ request.user.get_full_name|default:request.user.username }}</span>
+        <span class="d-md-none"><i class="fas fa-user"></i></span>
+        <span class="badge bg-warning text-dark ms-1 small d-none d-lg-inline">{{ request.user.get_rol_display }}</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li><a class="dropdown-item" href="{% url 'usuarios:perfil' %}"><i class="fas fa-id-card me-2 text-primary"></i>Mi perfil</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="post" action="{% url 'authentication:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item text-danger">
+              <i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión
+            </button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

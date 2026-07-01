@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Cancelar orden{% endblock %}{% block content %}
+<div class="row justify-content-center"><div class="col-md-6">
+<div class="card border-0 shadow-sm border-top border-danger border-3"><div class="card-body p-5 text-center">
+<i class="fas fa-ban fa-4x text-danger mb-3"></i>
+<h4 class="fw-bold">¿Cancelar la orden {{ orden.numero_orden }}?</h4>
+<p class="text-muted">Vehículo: <strong>{{ orden.vehiculo.placa }}</strong> — Cliente: <strong>{{ orden.cliente.nombre_completo }}</strong></p>
+<form method="post" class="d-flex justify-content-center gap-3 mt-4">{% csrf_token %}
+<button type="submit" class="btn btn-danger px-4"><i class="fas fa-ban me-2"></i>Cancelar orden</button>
+<a href="{% url 'ordenes:lista' %}" class="btn btn-secondary px-4">Volver</a>
+</form></div></div></div></div>{% endblock %}

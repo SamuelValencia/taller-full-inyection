@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ vehiculo.placa }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-car me-2 text-success"></i>{{ vehiculo.marca }} {{ vehiculo.modelo }} — <span class="badge bg-dark">{{ vehiculo.placa }}</span></h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'vehiculos:editar' vehiculo.pk %}" class="btn btn-warning"><i class="fas fa-edit me-1"></i>Editar</a>
+    <a href="{% url 'ordenes:crear' %}?vehiculo={{ vehiculo.pk }}" class="btn btn-primary"><i class="fas fa-clipboard-plus me-1"></i>Nueva orden</a>
+    <a href="{% url 'vehiculos:lista' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-success text-white fw-semibold"><i class="fas fa-info-circle me-2"></i>Datos del vehículo</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Propietario</dt><dd class="col-7"><a href="{% url 'clientes:detalle' vehiculo.cliente.pk %}">{{ vehiculo.cliente.nombre_completo }}</a></dd>
+          <dt class="col-5 text-muted">Tipo</dt><dd class="col-7">{{ vehiculo.get_tipo_vehiculo_display }}</dd>
+          <dt class="col-5 text-muted">Año</dt><dd class="col-7">{{ vehiculo.anio }}</dd>
+          <dt class="col-5 text-muted">Color</dt><dd class="col-7">{{ vehiculo.color|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Combustible</dt><dd class="col-7">{{ vehiculo.get_tipo_combustible_display }}</dd>
+          <dt class="col-5 text-muted">Transmisión</dt><dd class="col-7">{{ vehiculo.get_transmision_display|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Cilindraje</dt><dd class="col-7">{{ vehiculo.cilindraje|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Kilometraje</dt><dd class="col-7 fw-bold text-primary">{{ vehiculo.kilometraje_actual|floatformat:0 }} km</dd>
+          <dt class="col-5 text-muted">VIN</dt><dd class="col-7">{{ vehiculo.numero_vin|default:"—" }}</dd>
+          <dt class="col-5 text-muted">N° Motor</dt><dd class="col-7">{{ vehiculo.numero_motor|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+    {% if programas %}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-tools me-2 text-warning"></i>Mantenimiento preventivo</div>
+      <div class="card-body p-0">
+        {% for p in programas %}
+        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+          <span class="small">{{ p.tipo_servicio.nombre }}</span>
+          <span class="badge {% if p.estado == 'VENCIDO' %}bg-danger{% elif p.estado == 'PROXIMO' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+            {% if p.proximo_km %}{{ p.proximo_km|floatformat:0 }} km{% else %}{{ p.proxima_fecha|default:"—" }}{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-clipboard-list me-2 text-warning"></i>Últimas órdenes de servicio</div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle small">
+          <thead class="table-light"><tr><th>N° Orden</th><th>Estado</th><th>Km ingreso</th><th>Técnico</th><th>Fecha</th><th>Total</th></tr></thead>
+          <tbody>
+            {% for o in ordenes %}
+            <tr>
+              <td><a href="{% url 'ordenes:detalle' o.pk %}" class="text-decoration-none fw-semibold">{{ o.numero_orden }}</a></td>
+              <td>{% if o.estado == 'PENDIENTE' %}<span class="badge bg-secondary">Pendiente</span>{% elif o.estado == 'EN_PROCESO' %}<span class="badge bg-primary">En proceso</span>{% elif o.estado == 'FINALIZADO' %}<span class="badge bg-success">Finalizado</span>{% elif o.estado == 'ENTREGADO' %}<span class="badge bg-info text-dark">Entregado</span>{% else %}<span class="badge bg-danger">Cancelado</span>{% endif %}</td>
+              <td>{{ o.kilometraje_ingreso|floatformat:0 }} km</td>
+              <td>{{ o.tecnico_asignado.get_full_name|default:"—" }}</td>
+              <td>{{ o.fecha_ingreso|date:"d/m/Y" }}</td>
+              <td>${{ o.costo_total|floatformat:2 }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Sin órdenes</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="fas fa-history me-2 text-info"></i>Historial de mantenimiento</div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle small">
+          <thead class="table-light"><tr><th>Servicio</th><th>Km</th><th>Próx. km</th><th>Próx. fecha</th><th>Técnico</th><th>Fecha</th></tr></thead>
+          <tbody>
+            {% for h in historial %}
+            <tr>
+              <td>{{ h.tipo_servicio.nombre|default:h.descripcion|truncatechars:30 }}</td>
+              <td>{{ h.km_al_servicio|floatformat:0 }}</td>
+              <td>{{ h.proximo_km_sugerido|default:"—" }}</td>
+              <td>{{ h.proxima_fecha_sugerida|date:"d/m/Y"|default:"—" }}</td>
+              <td>{{ h.tecnico.get_full_name|default:"—" }}</td>
+              <td>{{ h.fecha_servicio|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-center text-muted py-3">Sin historial</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

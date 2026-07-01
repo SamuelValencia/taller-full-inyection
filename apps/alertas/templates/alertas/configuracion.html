@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Configuración — Recordatorios{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h4 fw-bold mb-0"><i class="fas fa-cog me-2 text-secondary"></i>Configuración de Recordatorios</h1>
+    <small class="text-muted">Parámetros globales del sistema de notificaciones a clientes</small>
+  </div>
+  <a href="{% url 'alertas:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-sliders-h me-2 text-warning"></i>Parámetros generales</div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Días de anticipación para el recordatorio</label>
+            <div class="input-group" style="max-width:200px">
+              <input type="number" name="dias_anticipacion" class="form-control"
+                     value="{{ config.dias_anticipacion }}" min="1" max="30">
+              <span class="input-group-text">días</span>
+            </div>
+            <div class="form-text">El sistema enviará el recordatorio este número de días <strong>antes</strong> del próximo mantenimiento. Por defecto: 5 días.</div>
+          </div>
+          <div class="mb-3 form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="activo" id="id_activo"
+                   {% if config.activo %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="id_activo">Sistema activo</label>
+            <div class="form-text">Desmarcar para pausar todos los envíos automáticos.</div>
+          </div>
+          <button type="submit" class="btn btn-warning fw-semibold">
+            <i class="fas fa-save me-2"></i>Guardar configuración
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-envelope me-2 text-primary"></i>Configuración de correo (SMTP)</div>
+      <div class="card-body small">
+        <p class="text-muted">Configure las variables en el archivo <code>.env</code> del proyecto:</p>
+        <pre class="bg-light p-3 rounded small"><code>EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=tucorreo@gmail.com
+EMAIL_HOST_PASSWORD=tu_contrasena_app</code></pre>
+        <div class="alert alert-warning py-2 mb-0">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Para Gmail, use una <strong>contraseña de aplicación</strong> (no su contraseña normal). Active la verificación en 2 pasos y genere una en: Google Account → Seguridad → Contraseñas de aplicaciones.
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2"><i class="fab fa-whatsapp me-2 text-success"></i>Configuración de WhatsApp</div>
+      <div class="card-body small">
+        <p class="text-muted mb-2">Elija un proveedor y configure en <code>.env</code>:</p>
+
+        <div class="mb-2"><strong>Opción A — Twilio:</strong></div>
+        <pre class="bg-light p-2 rounded small mb-3"><code>WHATSAPP_PROVIDER=TWILIO
+WHATSAPP_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+WHATSAPP_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+WHATSAPP_FROM_NUMBER=+14155238886</code></pre>
+
+        <div class="mb-2"><strong>Opción B — Meta Cloud API:</strong></div>
+        <pre class="bg-light p-2 rounded small mb-0"><code>WHATSAPP_PROVIDER=META
+WHATSAPP_META_TOKEN=EAAxxxxxxxxxxxxxxx
+WHATSAPP_META_PHONE_NUMBER_ID=1234567890</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2"><i class="fas fa-terminal me-2 text-dark"></i>Automatización — Cron Job</div>
+      <div class="card-body small">
+        <p>Para que los recordatorios se envíen automáticamente cada día a las 8:00 AM, agregue la siguiente línea al crontab del servidor:</p>
+        <pre class="bg-light p-3 rounded"><code>0 8 * * * /ruta/al/proyecto/venv/bin/python /ruta/al/proyecto/manage.py enviar_recordatorios --settings=fuel_injection.settings.development &gt;&gt; /var/log/fuel_injection_recordatorios.log 2&gt;&amp;1</code></pre>
+        <p class="mt-2 mb-1">También puede ejecutarlo manualmente:</p>
+        <pre class="bg-light p-2 rounded"><code>python manage.py enviar_recordatorios</code></pre>
+        <p class="text-muted mb-0">El comando revisa todos los registros activos y envía recordatorios a los clientes cuyo próximo mantenimiento sea en <strong>{{ config.dias_anticipacion }} días</strong> (configurable arriba).</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

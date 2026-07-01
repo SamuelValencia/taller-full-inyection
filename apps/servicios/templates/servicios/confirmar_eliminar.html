@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Desactivar servicio{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm mx-auto" style="max-width: 620px;">
+  <div class="card-body p-4">
+    <h1 class="h4 fw-bold">Desactivar servicio</h1>
+    <p class="mb-4">El servicio <strong>{{ servicio.nombre }}</strong> quedara inactivo y no aparecera como opcion para nuevas ordenes.</p>
+    <form method="post" class="d-flex flex-column flex-md-row gap-2">
+      {% csrf_token %}
+      <button class="btn btn-danger"><i class="fas fa-ban me-1"></i>Desactivar</button>
+      <a href="{% url 'servicios:lista' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

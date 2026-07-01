@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Registro de Mantenimiento — {{ registro.vehiculo.placa }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-0">
+      <i class="fas fa-tools me-2 text-warning"></i>Registro de Mantenimiento
+    </h1>
+    <small class="text-muted">{{ registro.vehiculo.placa }} — {{ registro.cliente.nombre_completo }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <form method="post" action="{% url 'alertas:reenviar' registro.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="canal" value="{{ registro.canal_envio }}">
+      <button type="submit" class="btn btn-warning btn-sm fw-semibold">
+        <i class="fas fa-paper-plane me-1"></i>Enviar Recordatorio Ahora
+      </button>
+    </form>
+    <a href="{% url 'alertas:lista' %}" class="btn btn-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Datos del cliente y vehículo -->
+  <div class="col-12 col-md-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-primary text-white fw-semibold py-2">
+        <i class="fas fa-user me-2"></i>Cliente
+      </div>
+      <div class="card-body small">
+        <div class="fw-bold fs-6 mb-1">{{ registro.cliente.nombre_completo }}</div>
+        <div class="text-muted">{{ registro.cliente.get_tipo_documento_display }}: {{ registro.cliente.numero_documento }}</div>
+        {% if registro.cliente.email %}
+        <div class="mt-1"><i class="fas fa-envelope me-1 text-muted"></i>{{ registro.cliente.email }}</div>
+        {% endif %}
+        {% if registro.cliente.telefono %}
+        <div><i class="fas fa-phone me-1 text-muted"></i>{{ registro.cliente.telefono }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-dark text-white fw-semibold py-2">
+        <i class="fas fa-car me-2"></i>Vehículo
+      </div>
+      <div class="card-body small">
+        <div class="fw-bold fs-6 mb-1">
+          <span class="badge bg-warning text-dark me-2">{{ registro.vehiculo.placa }}</span>
+          {{ registro.vehiculo.marca }} {{ registro.vehiculo.modelo }}
+        </div>
+        <div class="text-muted">Año: {{ registro.vehiculo.anio }} | Color: {{ registro.vehiculo.color|default:"—" }}</div>
+        <div class="text-muted">Kilometraje: {{ registro.vehiculo.kilometraje_actual|default:0 }} km</div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2">
+        <i class="fas fa-cog me-2 text-secondary"></i>Configuración del registro
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-6 text-muted">Tipo intervalo</dt>
+          <dd class="col-6">{{ registro.get_tipo_intervalo_display }}</dd>
+          {% if registro.intervalo_dias %}
+          <dt class="col-6 text-muted">Intervalo (días)</dt>
+          <dd class="col-6">{{ registro.intervalo_dias }} días</dd>
+          {% endif %}
+          {% if registro.intervalo_km %}
+          <dt class="col-6 text-muted">Intervalo (km)</dt>
+          <dd class="col-6">{{ registro.intervalo_km|floatformat:0 }} km</dd>
+          {% endif %}
+          <dt class="col-6 text-muted">Canal envío</dt>
+          <dd class="col-6">
+            {% if registro.canal_envio == 'EMAIL' %}<span class="badge bg-primary">✉ Email</span>
+            {% elif registro.canal_envio == 'WHATSAPP' %}<span class="badge bg-success">💬 WhatsApp</span>
+            {% else %}<span class="badge bg-info text-dark">Ambos</span>{% endif %}
+          </dd>
+          <dt class="col-6 text-muted">Registrado</dt>
+          <dd class="col-6">{{ registro.fecha_creacion|date:"d/m/Y" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detalle del mantenimiento y recordatorios -->
+  <div class="col-12 col-md-8">
+    <!-- Resumen mantenimiento -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold py-2">
+        <i class="fas fa-wrench me-2 text-warning"></i>Detalle del Mantenimiento
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="border rounded p-3 text-center">
+              <div class="small text-muted mb-1">Último mantenimiento</div>
+              <div class="fw-bold">{{ registro.fecha_mantenimiento|date:"d/m/Y" }}</div>
+              <div class="small text-muted">{{ registro.tipo_mantenimiento }}</div>
+              {% if registro.kilometraje_mantenimiento %}
+              <div class="small text-muted"><i class="fas fa-tachometer-alt me-1"></i>{{ registro.kilometraje_mantenimiento|floatformat:0 }} km</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="border rounded p-3 text-center {% if registro.dias_para_proximo is not None and registro.dias_para_proximo < 0 %}border-danger bg-danger bg-opacity-10{% elif registro.dias_para_proximo is not None and registro.dias_para_proximo <= 5 %}border-warning bg-warning bg-opacity-10{% endif %}">
+              <div class="small text-muted mb-1">Próximo mantenimiento</div>
+              {% if registro.fecha_proximo_mantenimiento %}
+              <div class="fw-bold {% if registro.dias_para_proximo is not None and registro.dias_para_proximo < 0 %}text-danger{% endif %}">
+                {{ registro.fecha_proximo_mantenimiento|date:"d/m/Y" }}
+              </div>
+              {% if registro.dias_para_proximo is not None %}
+                {% with d=registro.dias_para_proximo %}
+                {% if d < 0 %}<span class="badge bg-danger mt-1">Vencido</span>
+                {% elif d == 0 %}<span class="badge bg-danger mt-1">¡Hoy!</span>
+                {% elif d <= 5 %}<span class="badge bg-warning text-dark mt-1">{{ d }} día{{ d|pluralize }}</span>
+                {% else %}<span class="badge bg-success mt-1">{{ d }} días</span>{% endif %}
+                {% endwith %}
+              {% endif %}
+              {% if registro.kilometraje_proximo_mantenimiento %}
+              <div class="small text-muted mt-1"><i class="fas fa-tachometer-alt me-1"></i>{{ registro.kilometraje_proximo_mantenimiento|floatformat:0 }} km</div>
+              {% endif %}
+              {% else %}
+              <div class="text-muted">No definido</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% if registro.descripcion_trabajos %}
+        <div class="mt-3">
+          <div class="small fw-semibold text-muted mb-1">TRABAJOS REALIZADOS</div>
+          <div class="bg-light rounded p-2 small" style="white-space:pre-line">{{ registro.descripcion_trabajos }}</div>
+        </div>
+        {% endif %}
+
+        {% if registro.orden %}
+        <div class="mt-3">
+          <a href="{% url 'ordenes:detalle' registro.orden.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-clipboard-list me-1"></i>Ver Orden {{ registro.orden.numero_orden }}
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Historial de recordatorios -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history me-2 text-primary"></i>Historial de Recordatorios</span>
+        <span class="badge bg-secondary">{{ recordatorios.count }} envío{{ recordatorios.count|pluralize }}</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>N°</th>
+                <th>Canal</th>
+                <th>Fecha programada</th>
+                <th>Estado</th>
+                <th>Enviado</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recordatorios %}
+              <tr>
+                <td class="text-muted small">{{ r.intento_numero }}</td>
+                <td>
+                  {% if r.canal == 'EMAIL' %}<span class="badge bg-primary">✉ Email</span>
+                  {% elif r.canal == 'WHATSAPP' %}<span class="badge bg-success">💬 WA</span>
+                  {% else %}<span class="badge bg-info text-dark">Ambos</span>{% endif %}
+                </td>
+                <td class="small">{{ r.fecha_programada|date:"d/m/Y" }}</td>
+                <td>
+                  {% if r.estado == 'ENVIADO' %}<span class="badge bg-success">✓ Enviado</span>
+                  {% elif r.estado == 'PENDIENTE' %}<span class="badge bg-warning text-dark">⏳ Pendiente</span>
+                  {% elif r.estado == 'ERROR' %}<span class="badge bg-danger">✗ Error</span>
+                  {% else %}<span class="badge bg-secondary">{{ r.get_estado_display }}</span>{% endif %}
+                </td>
+                <td class="small">{{ r.fecha_envio|date:"d/m/Y H:i"|default:"—" }}</td>
+                <td class="small text-muted">
+                  {% if r.error_detalle %}
+                  <span title="{{ r.error_detalle }}" style="cursor:help">
+                    <i class="fas fa-exclamation-circle text-danger"></i> Ver error
+                  </span>
+                  {% elif r.enviado_email and r.enviado_whatsapp %}
+                  Email + WhatsApp
+                  {% elif r.enviado_email %}
+                  Email enviado
+                  {% elif r.enviado_whatsapp %}
+                  WhatsApp enviado
+                  {% else %}—{% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-3">Sin historial de envíos</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer bg-white py-2">
+        <form method="post" action="{% url 'alertas:reenviar' registro.pk %}" class="d-flex gap-2 align-items-center">
+          {% csrf_token %}
+          <select name="canal" class="form-select form-select-sm" style="max-width:180px">
+            <option value="EMAIL" {% if registro.canal_envio == 'EMAIL' %}selected{% endif %}>✉ Solo Email</option>
+            <option value="WHATSAPP" {% if registro.canal_envio == 'WHATSAPP' %}selected{% endif %}>💬 Solo WhatsApp</option>
+            <option value="AMBOS" {% if registro.canal_envio == 'AMBOS' %}selected{% endif %}>Ambos canales</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-warning fw-semibold">
+            <i class="fas fa-paper-plane me-1"></i>Enviar recordatorio
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ cliente.nombre_completo }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-0"><i class="fas fa-user me-2 text-primary"></i>{{ cliente.nombre_completo }}</h1>
+    <small class="text-muted">{{ cliente.get_tipo_documento_display }}: {{ cliente.numero_documento }}</small>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'clientes:editar' cliente.pk %}" class="btn btn-warning btn-sm"><i class="fas fa-edit me-1"></i>Editar</a>
+    <a href="{% url 'vehiculos:crear' %}?cliente={{ cliente.pk }}" class="btn btn-primary btn-sm"><i class="fas fa-car me-1"></i>Agregar vehículo</a>
+    <a href="{% url 'cotizaciones:crear' %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-invoice-dollar me-1"></i>Nueva cotización</a>
+    <a href="{% url 'clientes:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white fw-semibold py-2">
+        <i class="fas fa-id-card me-2"></i>Datos del cliente
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-muted">Documento</dt>
+          <dd class="col-7">{{ cliente.get_tipo_documento_display }}<br><strong>{{ cliente.numero_documento }}</strong></dd>
+          <dt class="col-5 text-muted">Teléfono</dt>
+          <dd class="col-7">{{ cliente.telefono }}</dd>
+          <dt class="col-5 text-muted">Email</dt>
+          <dd class="col-7">{{ cliente.email|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Ciudad</dt>
+          <dd class="col-7">{{ cliente.ciudad }}</dd>
+          <dt class="col-5 text-muted">Dirección</dt>
+          <dd class="col-7">{{ cliente.direccion|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Registrado</dt>
+          <dd class="col-7">{{ cliente.fecha_registro|date:"d/m/Y" }}</dd>
+        </dl>
+        {% if cliente.observaciones %}
+        <hr class="my-2">
+        <small class="text-muted">{{ cliente.observaciones }}</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <!-- Vehículos -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-car me-2 text-success"></i>Vehículos ({{ vehiculos.count }})</span>
+        <a href="{% url 'vehiculos:crear' %}?cliente={{ cliente.pk }}" class="btn btn-success btn-sm">
+          <i class="fas fa-plus me-1"></i>Agregar
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle table-sm">
+            <thead class="table-light">
+              <tr><th>Placa</th><th>Vehículo</th><th>Año</th><th>Km</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for v in vehiculos %}
+              <tr>
+                <td><span class="badge bg-dark">{{ v.placa }}</span></td>
+                <td>{{ v.marca }} {{ v.modelo }}</td>
+                <td>{{ v.anio }}</td>
+                <td>{{ v.kilometraje_actual|default:0 }} km</td>
+                <td>
+                  <a href="{% url 'vehiculos:detalle' v.pk %}" class="btn btn-sm btn-outline-primary" title="Ver vehículo">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Sin vehículos registrados</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Últimas órdenes de trabajo -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-clipboard-list me-2 text-warning"></i>Últimas Órdenes de Trabajo</span>
+        <a href="{% url 'ordenes:lista' %}" class="btn btn-outline-secondary btn-sm">Ver todas</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle table-sm">
+            <thead class="table-light">
+              <tr><th>N° Orden</th><th>Vehículo</th><th>Estado</th><th>Fecha</th><th class="text-end">Total</th></tr>
+            </thead>
+            <tbody>
+              {% for o in ordenes %}
+              <tr>
+                <td>
+                  <a href="{% url 'ordenes:detalle' o.pk %}" class="text-decoration-none fw-semibold">
+                    {{ o.numero_orden }}
+                  </a>
+                </td>
+                <td><span class="badge bg-secondary">{{ o.vehiculo.placa }}</span></td>
+                <td>
+                  {% if o.estado == 'RECIBIDA' %}<span class="badge bg-secondary">Recibida</span>
+                  {% elif o.estado == 'DIAGNOSTICO' %}<span class="badge bg-info">Diagnóstico</span>
+                  {% elif o.estado == 'EN_PROCESO' %}<span class="badge bg-primary">En proceso</span>
+                  {% elif o.estado == 'FINALIZADA' %}<span class="badge bg-success">Finalizada</span>
+                  {% elif o.estado == 'ENTREGADA' %}<span class="badge bg-dark">Entregada</span>
+                  {% elif o.estado == 'CANCELADA' %}<span class="badge bg-danger">Cancelada</span>
+                  {% else %}<span class="badge bg-warning text-dark">{{ o.get_estado_display }}</span>{% endif %}
+                </td>
+                <td>{{ o.fecha_ingreso|date:"d/m/Y" }}</td>
+                <td class="text-end fw-semibold">$ {{ o.costo_total|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Sin órdenes de trabajo</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

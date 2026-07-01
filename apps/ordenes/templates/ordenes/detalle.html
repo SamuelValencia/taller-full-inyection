@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block title %}{{ orden.numero_orden }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h4 fw-bold mb-0"><i class="fas fa-clipboard-list me-2 text-warning"></i>{{ orden.numero_orden }}</h1>
+    <small class="text-muted">Ingreso: {{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</small>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'ordenes:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+    <a href="{% url 'ordenes:editar' orden.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-edit me-1"></i>Editar</a>
+    <a href="{% url 'reportes:orden_pdf' orden.pk %}" class="btn btn-outline-danger btn-sm" target="_blank"><i class="fas fa-file-pdf me-1"></i>PDF OT</a>
+    {% if orden.estado == 'FINALIZADA' %}
+      {% if orden.factura %}
+      <a href="{% url 'facturacion:detalle' orden.factura.pk %}" class="btn btn-success btn-sm"><i class="fas fa-receipt me-1"></i>Ver Factura</a>
+      {% else %}
+      <a href="{% url 'facturacion:crear' orden.pk %}" class="btn btn-success btn-sm"><i class="fas fa-receipt me-1"></i>Generar Factura</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<!-- Estado y cambio de estado -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <span class="fw-semibold">Estado:</span>
+      {% if orden.estado == 'RECIBIDA' %}<span class="badge bg-secondary fs-6">Recibida</span>
+      {% elif orden.estado == 'DIAGNOSTICO' %}<span class="badge bg-info fs-6">Diagnóstico</span>
+      {% elif orden.estado == 'COTIZADA' %}<span class="badge bg-primary fs-6">Cotizada</span>
+      {% elif orden.estado == 'APROBADA' %}<span class="badge bg-success fs-6">Aprobada</span>
+      {% elif orden.estado == 'EN_PROCESO' %}<span class="badge bg-warning text-dark fs-6">En proceso</span>
+      {% elif orden.estado == 'ESPERANDO_REPUESTOS' %}<span class="badge bg-orange fs-6" style="background:#fd7e14">Esp. repuestos</span>
+      {% elif orden.estado == 'FINALIZADA' %}<span class="badge bg-success fs-6"><i class="fas fa-check me-1"></i>Finalizada</span>
+      {% elif orden.estado == 'ENTREGADA' %}<span class="badge bg-dark fs-6"><i class="fas fa-check-double me-1"></i>Entregada</span>
+      {% elif orden.estado == 'CANCELADA' %}<span class="badge bg-danger fs-6">Cancelada</span>
+      {% endif %}
+      <span class="badge {% if orden.prioridad == 'URGENTE' %}bg-danger{% elif orden.prioridad == 'ALTA' %}bg-warning text-dark{% elif orden.prioridad == 'MEDIA' %}bg-info{% else %}bg-secondary{% endif %}">
+        {{ orden.get_prioridad_display }}
+      </span>
+      {% if orden.cotizacion_origen %}
+      <a href="{% url 'cotizaciones:detalle' orden.cotizacion_origen.pk %}" class="badge bg-primary text-decoration-none">
+        <i class="fas fa-file-invoice me-1"></i>{{ orden.cotizacion_origen.numero_cotizacion }}
+      </a>
+      {% endif %}
+    </div>
+    <form method="post" action="{% url 'ordenes:cambiar_estado' orden.pk %}" class="d-flex gap-2 align-items-center">
+      {% csrf_token %}
+      <select name="estado" class="form-select form-select-sm" style="width:auto">
+        {% for val, label in estados %}
+        <option value="{{ val }}" {% if orden.estado == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-warning btn-sm">Cambiar</button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Cliente -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-light py-2"><h6 class="mb-0 fw-semibold"><i class="fas fa-user me-2 text-warning"></i>Cliente</h6></div>
+      <div class="card-body small">
+        <div class="fw-semibold fs-6">{{ orden.cliente.nombres }} {{ orden.cliente.apellidos }}</div>
+        <div class="text-muted"><i class="fas fa-id-card me-1"></i>{{ orden.cliente.get_tipo_documento_display }}: {{ orden.cliente.numero_documento }}</div>
+        <div class="text-muted"><i class="fas fa-phone me-1"></i>{{ orden.cliente.telefono }}</div>
+        {% if orden.cliente.email %}<div class="text-muted"><i class="fas fa-envelope me-1"></i>{{ orden.cliente.email }}</div>{% endif %}
+        {% if orden.cliente.direccion %}<div class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ orden.cliente.direccion }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehículo -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-light py-2"><h6 class="mb-0 fw-semibold"><i class="fas fa-car me-2 text-warning"></i>Vehículo</h6></div>
+      <div class="card-body small">
+        <div class="fw-semibold fs-6">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} {{ orden.vehiculo.anio }}</div>
+        <div><span class="badge bg-dark me-1">{{ orden.vehiculo.placa }}</span> <span class="text-muted">{{ orden.vehiculo.color|default:"" }}</span></div>
+        <div class="row mt-1">
+          <div class="col-6"><span class="text-muted">Km ingreso:</span> {{ orden.kilometraje_ingreso|default:0 }}</div>
+          <div class="col-6"><span class="text-muted">Tipo:</span> {{ orden.vehiculo.get_tipo_vehiculo_display }}</div>
+        </div>
+        {% if orden.vehiculo.numero_motor %}<div class="text-muted"><i class="fas fa-cogs me-1"></i>Motor: {{ orden.vehiculo.numero_motor }}</div>{% endif %}
+        {% if orden.vehiculo.numero_vin %}<div class="text-muted"><i class="fas fa-barcode me-1"></i>Chasis/VIN: {{ orden.vehiculo.numero_vin }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Info de la orden -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light py-2"><h6 class="mb-0 fw-semibold"><i class="fas fa-info-circle me-2 text-warning"></i>Datos de la Orden de Trabajo</h6></div>
+      <div class="card-body">
+        <div class="row g-2 small">
+          <div class="col-sm-4"><span class="text-muted">Tipo de trabajo:</span><br><strong>{{ orden.get_tipo_trabajo_display }}</strong></div>
+          <div class="col-sm-4"><span class="text-muted">Asesor / Recepcionista:</span><br><strong>{{ orden.recepcionista|default:"—" }}</strong></div>
+          <div class="col-sm-4"><span class="text-muted">Técnico asignado:</span><br><strong>{{ orden.tecnico_asignado|default:"Sin asignar" }}</strong></div>
+          <div class="col-sm-4"><span class="text-muted">Fecha de ingreso:</span><br><strong>{{ orden.fecha_ingreso|date:"d/m/Y H:i" }}</strong></div>
+          <div class="col-sm-4"><span class="text-muted">Fecha estimada entrega:</span><br><strong>{{ orden.fecha_estimada_entrega|date:"d/m/Y"|default:"No definida" }}</strong></div>
+          {% if orden.fecha_entrega_real %}<div class="col-sm-4"><span class="text-muted">Fecha entrega real:</span><br><strong>{{ orden.fecha_entrega_real|date:"d/m/Y H:i" }}</strong></div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Síntomas y Diagnóstico -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-light py-2"><h6 class="mb-0 fw-semibold"><i class="fas fa-comment-medical me-2 text-warning"></i>Síntomas reportados</h6></div>
+      <div class="card-body small"><p class="mb-0">{{ orden.descripcion_problema|linebreaks }}</p></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-light py-2"><h6 class="mb-0 fw-semibold"><i class="fas fa-microscope me-2 text-warning"></i>Diagnóstico técnico</h6></div>
+      <div class="card-body small"><p class="mb-0">{{ orden.diagnostico|linebreaks|default:"<span class='text-muted fst-italic'>Pendiente</span>" }}</p></div>
+    </div>
+  </div>
+
+  {% if orden.autorizacion_cliente %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm border-start border-success border-3">
+      <div class="card-body py-2 px-3 small">
+        <small class="text-muted fw-semibold text-uppercase"><i class="fas fa-signature me-1"></i>Autorización del cliente</small>
+        <p class="mb-0 mt-1">{{ orden.autorizacion_cliente }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tabla de trabajos -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light py-2">
+        <h6 class="mb-0 fw-semibold"><i class="fas fa-list-ul me-2 text-warning"></i>Trabajos autorizados / Ítems</h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width:90px">Tipo</th>
+                <th>Descripción</th>
+                <th class="text-center" style="width:70px">Cant.</th>
+                <th class="text-end" style="width:120px">P. Unit.</th>
+                <th class="text-end" style="width:120px">Subtotal</th>
+                <th style="width:45px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for det in detalles %}
+              <tr>
+                <td>
+                  {% if det.tipo == 'SERVICIO' %}<span class="badge bg-warning text-dark">Servicio</span>
+                  {% else %}<span class="badge bg-secondary">Repuesto</span>{% endif %}
+                </td>
+                <td>{{ det.descripcion }}</td>
+                <td class="text-center">{{ det.cantidad|floatformat:0 }}</td>
+                <td class="text-end">$ {{ det.precio_unitario|floatformat:2 }}</td>
+                <td class="text-end fw-semibold">$ {{ det.subtotal|floatformat:2 }}</td>
+                <td>
+                  {% if orden.estado != 'ENTREGADA' and orden.estado != 'CANCELADA' %}
+                  <form method="post" action="{% url 'ordenes:eliminar_detalle' orden.pk det.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('¿Eliminar este ítem?')" title="Eliminar">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-4">Sin ítems. Agregue servicios o repuestos abajo.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer bg-white">
+        <div class="row justify-content-end">
+          <div class="col-sm-5 col-md-4">
+            <table class="table table-sm mb-0">
+              <tr><td class="text-muted">Mano de obra</td><td class="text-end">$ {{ orden.costo_mano_obra|floatformat:2 }}</td></tr>
+              <tr><td class="text-muted">Repuestos</td><td class="text-end">$ {{ orden.costo_repuestos|floatformat:2 }}</td></tr>
+              <tr><td class="text-muted">Descuento</td><td class="text-end text-danger">- $ {{ orden.descuento|floatformat:2 }}</td></tr>
+              <tr class="fw-bold table-light"><td>TOTAL</td><td class="text-end fs-5 text-success">$ {{ orden.costo_total|floatformat:2 }}</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agregar ítems (si no está entregada/cancelada) -->
+  {% if orden.estado != 'ENTREGADA' and orden.estado != 'CANCELADA' %}
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm border-start border-warning border-3">
+      <div class="card-header bg-warning bg-opacity-10 py-2">
+        <h6 class="mb-0 fw-semibold text-warning-emphasis"><i class="fas fa-wrench me-2"></i>Agregar Servicio del Catálogo</h6>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'ordenes:agregar_servicio' orden.pk %}" id="form-servicio-ot">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label form-label-sm fw-semibold">Servicio <span class="text-danger">*</span></label>
+            <select name="servicio" id="sel-servicio-ot" class="form-select form-select-sm" required>
+              <option value="">— Seleccione un servicio —</option>
+              {% regroup servicios_catalogo by get_categoria_display as grupos %}
+              {% for grupo in grupos %}
+              <optgroup label="{{ grupo.grouper }}">
+                {% for s in grupo.list %}
+                <option value="{{ s.pk }}" {% if s.pk in servicios_agregados_ids %}disabled data-ya-agregado="1"{% endif %}>
+                  {{ s.nombre }}{% if s.pk in servicios_agregados_ids %} ✓{% endif %}
+                </option>
+                {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+            <div id="aviso-dup-ot" class="text-danger small mt-1 d-none">
+              <i class="fas fa-exclamation-triangle me-1"></i>Este servicio ya fue agregado a esta orden.
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-5">
+              <label class="form-label form-label-sm fw-semibold">Cantidad <span class="text-danger">*</span></label>
+              <input type="number" name="cantidad" class="form-control form-control-sm" value="1" min="1" step="1" required>
+            </div>
+            <div class="col-7">
+              <label class="form-label form-label-sm fw-semibold">Precio unit. ($) <span class="text-danger">*</span></label>
+              <input type="number" name="precio_unitario" class="form-control form-control-sm" value="0.00" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-warning btn-sm w-100" id="btn-agregar-ot">
+            <i class="fas fa-plus me-1"></i>Agregar servicio
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm border-start border-secondary border-3">
+      <div class="card-header bg-secondary bg-opacity-10 py-2">
+        <h6 class="mb-0 fw-semibold"><i class="fas fa-cog me-2"></i>Agregar Repuesto / Material</h6>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'ordenes:agregar_repuesto' orden.pk %}">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label form-label-sm fw-semibold">Descripción <span class="text-danger">*</span></label>
+            <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Ej: Filtro de aceite Bosch" maxlength="200" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-5">
+              <label class="form-label form-label-sm fw-semibold">Cantidad <span class="text-danger">*</span></label>
+              <input type="number" name="cantidad" class="form-control form-control-sm" value="1" min="1" step="1" required>
+            </div>
+            <div class="col-7">
+              <label class="form-label form-label-sm fw-semibold">Precio unit. ($) <span class="text-danger">*</span></label>
+              <input type="number" name="precio_unitario" class="form-control form-control-sm" value="0.00" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-secondary btn-sm w-100">
+            <i class="fas fa-plus me-1"></i>Agregar repuesto
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if orden.observaciones %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body py-2 px-3 small">
+        <small class="text-muted fw-semibold text-uppercase">Observaciones</small>
+        <p class="mb-0 mt-1">{{ orden.observaciones }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const selOT = document.getElementById('sel-servicio-ot');
+const avisoOT = document.getElementById('aviso-dup-ot');
+const btnOT = document.getElementById('btn-agregar-ot');
+
+if (selOT) {
+  selOT.addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    if (opt && opt.dataset.yaAgregado === '1') {
+      avisoOT.classList.remove('d-none');
+      btnOT.disabled = true;
+    } else {
+      avisoOT.classList.add('d-none');
+      btnOT.disabled = false;
+    }
+  });
+}
+</script>
+{% endblock %}

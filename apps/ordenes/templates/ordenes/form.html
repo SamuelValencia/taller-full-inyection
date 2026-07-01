@@ -1,0 +1,144 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+
+  <div class="w-100">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h4 fw-bold mb-0"><i class="fas fa-clipboard-plus me-2 text-warning"></i>{{ titulo }}</h1>
+      <a href="{% url 'ordenes:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+    </div>
+
+    {% if cotizacion %}
+    <div class="alert alert-success alert-sm mb-3">
+      <i class="fas fa-check-circle me-1"></i>Generando orden desde cotización aprobada:
+      <strong>{{ cotizacion.numero_cotizacion }}</strong> —
+      {{ cotizacion.cliente.nombres }} {{ cotizacion.cliente.apellidos }} /
+      {{ cotizacion.vehiculo.placa }}
+    </div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3 p-md-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.08em">
+            <i class="fas fa-user me-1"></i>Cliente y vehículo
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
+              {{ form.cliente }}
+              {% if form.cliente.errors %}<div class="text-danger small mt-1">{{ form.cliente.errors }}</div>{% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Vehículo <span class="text-danger">*</span></label>
+              {{ form.vehiculo }}
+              {% if form.vehiculo.errors %}<div class="text-danger small mt-1">{{ form.vehiculo.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.08em">
+            <i class="fas fa-cog me-1"></i>Detalles de la orden
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold">Estado</label>
+              {{ form.estado }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold">Prioridad</label>
+              {{ form.prioridad }}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold">Tipo de trabajo</label>
+              {{ form.tipo_trabajo }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Técnico asignado</label>
+              {{ form.tecnico_asignado }}
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-semibold">Kilometraje ingreso</label>
+              {{ form.kilometraje_ingreso }}
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-semibold">Fecha estimada entrega</label>
+              {{ form.fecha_estimada_entrega }}
+            </div>
+          </div>
+
+          <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.08em">
+            <i class="fas fa-comment-alt me-1"></i>Descripción y diagnóstico
+          </h6>
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Síntomas reportados por el cliente <span class="text-danger">*</span></label>
+              {{ form.descripcion_problema }}
+              {% if form.descripcion_problema.errors %}<div class="text-danger small mt-1">{{ form.descripcion_problema.errors }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Diagnóstico técnico</label>
+              {{ form.diagnostico }}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Autorización del cliente</label>
+              {{ form.autorizacion_cliente }}
+              <small class="text-muted">Registre la autorización verbal o escrita del cliente para realizar los trabajos.</small>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Observaciones</label>
+              {{ form.observaciones }}
+            </div>
+          </div>
+
+          <hr class="mt-2">
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-warning fw-semibold px-4"><i class="fas fa-save me-2"></i>Guardar orden</button>
+            <a href="{% url 'ordenes:lista' %}" class="btn btn-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if not orden %}
+    <div class="alert alert-info mt-3 small">
+      <i class="fas fa-info-circle me-1"></i>
+      Después de guardar, agregue múltiples servicios y repuestos desde la página de detalle de la orden.
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const clienteEl = document.getElementById("id_cliente");
+  const vehiculoEl = document.getElementById("id_vehiculo");
+  const kmEl = document.getElementById("id_kilometraje_ingreso");
+  if (!clienteEl || !vehiculoEl) return;
+
+  clienteEl.addEventListener("change", function () {
+    const id = clienteEl.value;
+    vehiculoEl.innerHTML = '<option value="">Cargando vehículos...</option>';
+    if (!id) { vehiculoEl.innerHTML = '<option value="">Seleccione un cliente primero</option>'; return; }
+    fetch("{% url 'ordenes:vehiculos_por_cliente' %}?cliente=" + encodeURIComponent(id))
+      .then(r => r.json())
+      .then(data => {
+        vehiculoEl.innerHTML = '<option value="">Seleccione un vehículo</option>';
+        data.results.forEach(item => {
+          const o = document.createElement("option");
+          o.value = item.id;
+          o.textContent = item.text;
+          o.dataset.km = item.kilometraje;
+          vehiculoEl.appendChild(o);
+        });
+      });
+  });
+
+  vehiculoEl.addEventListener("change", function () {
+    const sel = vehiculoEl.options[vehiculoEl.selectedIndex];
+    if (sel && sel.dataset.km && kmEl) kmEl.value = sel.dataset.km;
+  });
+});
+</script>
+{% endblock %}

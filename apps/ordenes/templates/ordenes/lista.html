@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Ordenes de trabajo{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mb-md-4 gap-2">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-clipboard-list me-2 text-warning"></i>Ordenes de trabajo</h1>
+  <a href="{% url 'ordenes:crear' %}" class="btn btn-warning fw-semibold btn-sm btn-md-auto"><i class="fas fa-plus me-1"></i>Nueva orden</a>
+</div>
+
+<!-- Filtros rapidos por estado -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="{% url 'ordenes:lista' %}" class="btn btn-sm {% if not estado %}btn-dark{% else %}btn-outline-dark{% endif %}">Todas</a>
+  {% for val, label in estados %}
+  <a href="?estado={{ val }}" class="btn btn-sm {% if estado == val %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-0 pt-3">
+    <form method="get" class="row g-2">
+      {% if estado %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}
+      <div class="col-12 col-md-5">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="N orden, placa o cliente…" value="{{ q }}">
+          <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+          {% if q %}<a href="?{% if estado %}estado={{ estado }}{% endif %}" class="btn btn-outline-danger"><i class="fas fa-times"></i></a>{% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 dataTable">
+        <thead class="table-light">
+          <tr>
+            <th>N Orden</th>
+            <th>Placa</th>
+            <th class="d-none d-md-table-cell">Cliente</th>
+            <th class="d-none d-lg-table-cell">Servicio</th>
+            <th>Estado</th>
+            <th class="d-none d-lg-table-cell">Prioridad</th>
+            <th class="d-none d-md-table-cell">Tecnico</th>
+            <th class="d-none d-lg-table-cell">F. ingreso</th>
+            <th class="d-none d-lg-table-cell">F. estimada</th>
+            <th>Total</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in ordenes %}
+          <tr>
+            <td><a href="{% url 'ordenes:detalle' o.pk %}" class="fw-bold text-decoration-none">{{ o.numero_orden }}</a></td>
+            <td><span class="badge bg-dark">{{ o.vehiculo.placa }}</span></td>
+            <td class="d-none d-md-table-cell">{{ o.cliente.nombre_completo }}</td>
+            <td class="d-none d-lg-table-cell">{{ o.servicio.nombre|default:"-" }}</td>
+            <td>{% if o.estado == 'RECIBIDA' %}<span class="badge bg-secondary">Recibida</span>{% elif o.estado == 'DIAGNOSTICO' %}<span class="badge bg-info">Diagnostico</span>{% elif o.estado == 'COTIZADA' %}<span class="badge bg-warning text-dark">Cotizada</span>{% elif o.estado == 'APROBADA' %}<span class="badge bg-success">Aprobada</span>{% elif o.estado == 'EN_PROCESO' %}<span class="badge bg-primary">En proceso</span>{% elif o.estado == 'ESPERANDO_REPUESTOS' %}<span class="badge bg-warning">Esperando repuestos</span>{% elif o.estado == 'FINALIZADA' %}<span class="badge bg-success">Finalizada</span>{% elif o.estado == 'ENTREGADA' %}<span class="badge bg-info text-dark">Entregada</span>{% else %}<span class="badge bg-danger">Cancelada</span>{% endif %}</td>
+            <td class="d-none d-lg-table-cell">{% if o.prioridad == 'URGENTE' %}<span class="badge bg-danger">Urgente</span>{% elif o.prioridad == 'ALTA' %}<span class="badge bg-warning text-dark">Alta</span>{% elif o.prioridad == 'MEDIA' %}<span class="badge bg-info text-dark">Media</span>{% else %}<span class="badge bg-secondary">Baja</span>{% endif %}</td>
+            <td class="d-none d-md-table-cell small">{{ o.tecnico_asignado.get_full_name|default:"—" }}</td>
+            <td class="d-none d-lg-table-cell small">{{ o.fecha_ingreso|date:"d/m/Y" }}</td>
+            <td class="d-none d-lg-table-cell small">{{ o.fecha_estimada_entrega|date:"d/m/Y"|default:"—" }}</td>
+            <td class="fw-semibold">${{ o.costo_total|floatformat:2 }}</td>
+            <td class="text-center">
+              <div class="btn-group" role="group">
+                <a href="{% url 'ordenes:detalle' o.pk %}" class="btn btn-sm btn-secondary" title="Ver"><i class="fas fa-eye"></i></a>
+                <a href="{% url 'ordenes:editar' o.pk %}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                <a href="{% url 'reportes:orden_pdf' o.pk %}" class="btn btn-sm btn-primary" title="PDF"><i class="fas fa-file-pdf"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="11" class="text-center text-muted py-4"><i class="fas fa-clipboard fa-2x d-block mb-2"></i>No se encontraron ordenes</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer bg-white text-muted small">Total: {{ ordenes.count }} orden(es)</div>
+</div>
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Alertas — Recordatorios de Mantenimiento{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-0"><i class="fas fa-bell me-2 text-warning"></i>Recordatorios de Mantenimiento</h1>
+    <small class="text-muted">Sistema de notificaciones postventa para clientes del taller</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'alertas:crear_registro' %}" class="btn btn-warning btn-sm fw-semibold">
+      <i class="fas fa-plus me-1"></i>Nuevo Registro
+    </a>
+    <a href="{% url 'alertas:configuracion' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-cog me-1"></i>Configurar
+    </a>
+  </div>
+</div>
+
+<!-- KPIs rápidos -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="h3 fw-bold text-warning mb-0">{{ registros.count }}</div>
+      <div class="small text-muted">Vehículos con seguimiento</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="?estado=proximos" class="text-decoration-none">
+      <div class="card border-0 shadow-sm text-center py-3 {% if estado_filtro == 'proximos' %}border border-warning{% endif %}">
+        <div class="h3 fw-bold text-warning mb-0">
+          {% with proximos=registros|length %}{{ proximos }}{% endwith %}
+        </div>
+        <div class="small text-muted">Próximos 10 días</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="?estado=vencidos" class="text-decoration-none">
+      <div class="card border-0 shadow-sm text-center py-3 {% if estado_filtro == 'vencidos' %}border border-danger{% endif %}">
+        <div class="h3 fw-bold text-danger mb-0">
+          {% with cnt=0 %}
+          {% for r in registros %}{% if r.dias_para_proximo is not None and r.dias_para_proximo < 0 %}{% with cnt=cnt|add:1 %}{% endwith %}{% endif %}{% endfor %}
+          {{ cnt }}
+          {% endwith %}
+        </div>
+        <div class="small text-muted">Vencidos</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="h3 fw-bold text-success mb-0">{{ config.dias_anticipacion }}</div>
+      <div class="small text-muted">Días de anticipación</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+      <input type="text" name="cliente" value="{{ cliente_q }}" placeholder="Buscar por cliente o placa..."
+             class="form-control form-control-sm" style="max-width:260px">
+      <div class="btn-group btn-group-sm" role="group">
+        <a href="?" class="btn {% if not estado_filtro %}btn-warning{% else %}btn-outline-secondary{% endif %}">Todos</a>
+        <a href="?estado=proximos" class="btn {% if estado_filtro == 'proximos' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Próximos</a>
+        <a href="?estado=vencidos" class="btn {% if estado_filtro == 'vencidos' %}btn-danger{% else %}btn-outline-secondary{% endif %}">Vencidos</a>
+        <a href="?estado=pendientes" class="btn {% if estado_filtro == 'pendientes' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Pendientes envío</a>
+      </div>
+      {% if cliente_q %}
+      <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-search me-1"></i>Buscar</button>
+      <a href="?" class="btn btn-sm btn-outline-secondary">✕ Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Tabla principal -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Cliente</th>
+            <th>Vehículo</th>
+            <th class="d-none d-md-table-cell">Último mantenimiento</th>
+            <th>Próximo mantenimiento</th>
+            <th>Días restantes</th>
+            <th class="d-none d-lg-table-cell">Canal</th>
+            <th>Último envío</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reg in registros %}
+          {% with dias=reg.dias_para_proximo semaforo=reg.estado_semaforo ultimo=reg.recordatorios.first %}
+          <tr class="{% if dias is not None and dias < 0 %}table-danger{% elif dias is not None and dias <= 5 %}table-warning{% endif %}">
+            <!-- Cliente -->
+            <td>
+              <div class="fw-semibold small">{{ reg.cliente.nombre_completo }}</div>
+              <div class="text-muted" style="font-size:.72rem">
+                {% if reg.cliente.email %}<i class="fas fa-envelope me-1"></i>{{ reg.cliente.email }}<br>{% endif %}
+                {% if reg.cliente.telefono %}<i class="fas fa-phone me-1"></i>{{ reg.cliente.telefono }}{% endif %}
+              </div>
+            </td>
+            <!-- Vehículo -->
+            <td>
+              <span class="badge bg-dark mb-1">{{ reg.vehiculo.placa }}</span><br>
+              <span class="small text-muted">{{ reg.vehiculo.marca }} {{ reg.vehiculo.modelo }} {{ reg.vehiculo.anio }}</span>
+            </td>
+            <!-- Último mantenimiento -->
+            <td class="d-none d-md-table-cell small">
+              <div>{{ reg.fecha_mantenimiento|date:"d/m/Y" }}</div>
+              <div class="text-muted" style="font-size:.7rem">{{ reg.tipo_mantenimiento }}</div>
+            </td>
+            <!-- Próximo mantenimiento -->
+            <td>
+              {% if reg.fecha_proximo_mantenimiento %}
+              <div class="fw-semibold {% if dias is not None and dias < 0 %}text-danger{% elif dias is not None and dias <= 5 %}text-warning{% endif %}">
+                {{ reg.fecha_proximo_mantenimiento|date:"d/m/Y" }}
+              </div>
+              {% if reg.kilometraje_proximo_mantenimiento %}
+              <div class="text-muted" style="font-size:.7rem"><i class="fas fa-tachometer-alt me-1"></i>{{ reg.kilometraje_proximo_mantenimiento|floatformat:0 }} km</div>
+              {% endif %}
+              {% else %}
+              <span class="text-muted small">No definido</span>
+              {% endif %}
+            </td>
+            <!-- Días restantes -->
+            <td>
+              {% if dias is not None %}
+                {% if dias < 0 %}
+                <span class="badge bg-danger">Vencido {{ dias|floatformat:0 }} días</span>
+                {% elif dias == 0 %}
+                <span class="badge bg-danger">¡Hoy!</span>
+                {% elif dias <= 5 %}
+                <span class="badge bg-warning text-dark">{{ dias }} día{{ dias|pluralize }}</span>
+                {% elif dias <= 10 %}
+                <span class="badge bg-info text-dark">{{ dias }} días</span>
+                {% else %}
+                <span class="badge bg-success">{{ dias }} días</span>
+                {% endif %}
+              {% else %}
+              <span class="badge bg-secondary">Sin fecha</span>
+              {% endif %}
+            </td>
+            <!-- Canal -->
+            <td class="d-none d-lg-table-cell small">
+              {% if reg.canal_envio == 'EMAIL' %}<span class="badge bg-primary">✉ Email</span>
+              {% elif reg.canal_envio == 'WHATSAPP' %}<span class="badge bg-success">💬 WhatsApp</span>
+              {% else %}<span class="badge bg-info text-dark">✉+💬 Ambos</span>{% endif %}
+            </td>
+            <!-- Último envío -->
+            <td class="small">
+              {% if ultimo %}
+                {% if ultimo.estado == 'ENVIADO' %}
+                <span class="badge bg-success">✓ Enviado</span><br>
+                <span style="font-size:.7rem" class="text-muted">{{ ultimo.fecha_envio|date:"d/m/Y H:i"|default:"—" }}</span>
+                {% elif ultimo.estado == 'PENDIENTE' %}
+                <span class="badge bg-warning text-dark">⏳ Pendiente</span><br>
+                <span style="font-size:.7rem" class="text-muted">Para: {{ ultimo.fecha_programada|date:"d/m/Y" }}</span>
+                {% else %}
+                <span class="badge bg-danger">✗ Error</span><br>
+                <span style="font-size:.7rem" class="text-muted" title="{{ ultimo.error_detalle }}">Ver detalle</span>
+                {% endif %}
+              {% else %}
+              <span class="text-muted" style="font-size:.75rem">Sin envíos</span>
+              {% endif %}
+            </td>
+            <!-- Acciones -->
+            <td class="text-center">
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="{% url 'alertas:detalle_registro' reg.pk %}" class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <form method="post" action="{% url 'alertas:reenviar' reg.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="canal" value="{{ reg.canal_envio }}">
+                  <button type="submit" class="btn btn-sm btn-outline-warning" title="Enviar recordatorio ahora">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5">
+              <i class="fas fa-bell-slash fa-3x text-muted opacity-25 d-block mb-3"></i>
+              <div class="fw-semibold text-muted">No hay registros de mantenimiento</div>
+              <div class="text-muted small mb-3">Los registros se crean automáticamente al finalizar una Orden de Trabajo de tipo Mantenimiento Preventivo.</div>
+              <a href="{% url 'alertas:crear_registro' %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-plus me-1"></i>Crear registro manual
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Instrucción de automatización -->
+<div class="alert alert-info border-0 mt-4 d-flex gap-3 align-items-start">
+  <i class="fas fa-robot fa-lg mt-1"></i>
+  <div>
+    <strong>Automatización:</strong> Para enviar recordatorios diariamente de forma automática, configure un cron job o tarea programada que ejecute:<br>
+    <code class="d-inline-block mt-1 bg-white border rounded px-2 py-1">python manage.py enviar_recordatorios</code>
+    <br><small class="text-muted mt-1 d-block">Ejemplo cron: <code>0 8 * * * /ruta/venv/bin/python manage.py enviar_recordatorios --settings=fuel_injection.settings.development</code></small>
+  </div>
+</div>
+{% endblock %}

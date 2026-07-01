@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
+  <div>
+    <h1 class="h4 fw-bold mb-0">Bienvenido, {{ request.user.first_name|default:request.user.username }}</h1>
+    <small class="text-muted">
+      Panel de control — Fuel Injection Taller Mecánico &nbsp;·&nbsp;
+      {% now "d \d\e F \d\e Y" %} &nbsp;·&nbsp; {{ request.user.get_rol_display }}
+    </small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'ordenes:crear' %}" class="btn btn-warning btn-sm fw-semibold">
+      <i class="fas fa-plus me-1"></i>Nueva OT
+    </a>
+    <a href="{% url 'cotizaciones:crear' %}" class="btn btn-outline-primary btn-sm">
+      <i class="fas fa-file-invoice-dollar me-1"></i>Nueva Cotización
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary flex-shrink-0" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center">
+          <i class="fas fa-users fa-lg"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-primary">{{ total_clientes }}</div>
+          <div class="small text-muted">Clientes activos</div>
+          <a href="{% url 'clientes:lista' %}" class="small text-decoration-none">Ver todos →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success flex-shrink-0" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center">
+          <i class="fas fa-car fa-lg"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-success">{{ total_vehiculos }}</div>
+          <div class="small text-muted">Vehículos registrados</div>
+          <a href="{% url 'vehiculos:lista' %}" class="small text-decoration-none">Ver todos →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning flex-shrink-0" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center">
+          <i class="fas fa-clipboard-list fa-lg"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-warning">{{ ordenes_pendientes }}</div>
+          <div class="small text-muted">Órdenes recibidas</div>
+          <a href="{% url 'ordenes:lista' %}?estado=RECIBIDA" class="small text-decoration-none">Ver pendientes →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info flex-shrink-0" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center">
+          <i class="fas fa-dollar-sign fa-lg"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-info">$ {{ ingresos_mes|floatformat:2 }}</div>
+          <div class="small text-muted">Ingresos últimos 30 días</div>
+          <a href="{% url 'reportes:index' %}" class="small text-decoration-none">Ver reportes →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resumen de estados + Órdenes recientes -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold py-2">
+        <i class="fas fa-tachometer-alt me-2 text-success"></i>Estado de órdenes
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span><span class="badge bg-secondary me-2">●</span>Recibidas</span>
+            <span class="fw-bold fs-5 text-secondary">{{ ordenes_pendientes }}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span><span class="badge bg-primary me-2">●</span>En proceso</span>
+            <span class="fw-bold fs-5 text-primary">{{ ordenes_en_proceso }}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span><span class="badge bg-success me-2">●</span>Finalizadas</span>
+            <span class="fw-bold fs-5 text-success">{{ ordenes_finalizadas }}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <span><span class="badge bg-dark me-2">●</span>Entregadas</span>
+            <span class="fw-bold fs-5">{{ ordenes_entregadas }}</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center bg-light">
+            <span class="text-muted small">Ingresos anuales</span>
+            <span class="fw-bold text-success">$ {{ ingresos_anio|floatformat:2 }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-white py-2">
+        <a href="{% url 'ordenes:lista' %}" class="btn btn-sm btn-outline-warning w-100">
+          <i class="fas fa-list me-1"></i>Ver todas las órdenes
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold py-2 d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-history me-2 text-warning"></i>Órdenes de Trabajo recientes</span>
+        <a href="{% url 'ordenes:lista' %}" class="btn btn-sm btn-outline-secondary">Ver todas</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>N° Orden</th>
+                <th>Cliente</th>
+                <th class="d-none d-md-table-cell">Vehículo</th>
+                <th>Estado</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in ordenes_recientes %}
+              <tr>
+                <td>
+                  <a href="{% url 'ordenes:detalle' o.pk %}" class="fw-semibold text-decoration-none">
+                    {{ o.numero_orden }}
+                  </a>
+                </td>
+                <td class="small">{{ o.cliente.nombre_completo }}</td>
+                <td class="d-none d-md-table-cell">
+                  <span class="badge bg-dark">{{ o.vehiculo.placa }}</span>
+                </td>
+                <td>
+                  {% if o.estado == 'RECIBIDA' %}<span class="badge bg-secondary">Recibida</span>
+                  {% elif o.estado == 'DIAGNOSTICO' %}<span class="badge bg-info text-dark">Diagnóstico</span>
+                  {% elif o.estado == 'EN_PROCESO' %}<span class="badge bg-primary">En proceso</span>
+                  {% elif o.estado == 'FINALIZADA' %}<span class="badge bg-success">Finalizada</span>
+                  {% elif o.estado == 'ENTREGADA' %}<span class="badge bg-dark">Entregada</span>
+                  {% elif o.estado == 'CANCELADA' %}<span class="badge bg-danger">Cancelada</span>
+                  {% else %}<span class="badge bg-warning text-dark">{{ o.get_estado_display }}</span>{% endif %}
+                </td>
+                <td class="text-end fw-semibold">$ {{ o.costo_total|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                  <i class="fas fa-clipboard fa-2x d-block mb-2 opacity-25"></i>
+                  No hay órdenes de trabajo registradas
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Accesos rápidos -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold py-2">
+    <i class="fas fa-th-large me-2 text-primary"></i>Accesos rápidos
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'ordenes:crear' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-warning bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-plus-circle fa-2x text-warning mb-2"></i>
+            <div class="fw-semibold small">Nueva OT</div>
+            <div class="text-muted" style="font-size:.7rem">Orden de Trabajo</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'cotizaciones:crear' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-primary bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-file-invoice-dollar fa-2x text-primary mb-2"></i>
+            <div class="fw-semibold small">Nueva Cotización</div>
+            <div class="text-muted" style="font-size:.7rem">Proforma al cliente</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'clientes:crear' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-success bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-user-plus fa-2x text-success mb-2"></i>
+            <div class="fw-semibold small">Nuevo Cliente</div>
+            <div class="text-muted" style="font-size:.7rem">Registrar en el sistema</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'vehiculos:crear' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-info bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-car fa-2x text-info mb-2"></i>
+            <div class="fw-semibold small">Nuevo Vehículo</div>
+            <div class="text-muted" style="font-size:.7rem">Registrar vehículo</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'cotizaciones:lista' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-secondary bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-file-invoice fa-2x text-secondary mb-2"></i>
+            <div class="fw-semibold small">Cotizaciones</div>
+            <div class="text-muted" style="font-size:.7rem">Ver todas las proformas</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'inventario:index' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-warning bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-boxes fa-2x text-warning mb-2"></i>
+            <div class="fw-semibold small">Inventario</div>
+            <div class="text-muted" style="font-size:.7rem">Repuestos y stock</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'facturacion:lista' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-success bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-receipt fa-2x text-success mb-2"></i>
+            <div class="fw-semibold small">Facturación</div>
+            <div class="text-muted" style="font-size:.7rem">Facturas emitidas</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'reportes:index' %}" class="text-decoration-none d-block">
+          <div class="card border-0 bg-danger bg-opacity-10 text-center py-3 px-2 h-100 rounded-3">
+            <i class="fas fa-chart-bar fa-2x text-danger mb-2"></i>
+            <div class="fw-semibold small">Reportes</div>
+            <div class="text-muted" style="font-size:.7rem">Estadísticas del taller</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Vehículos{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mb-md-4 gap-2">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-car me-2 text-success"></i>Vehículos</h1>
+  <a href="{% url 'vehiculos:crear' %}" class="btn btn-primary fw-semibold btn-sm btn-md-auto"><i class="fas fa-plus me-1"></i>Nuevo vehículo</a>
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-0 pt-3">
+    <form method="get" class="row g-2">
+      <div class="col-12 col-md-5">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Buscar por placa, marca, cliente…" value="{{ q }}">
+          <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+          {% if q %}<a href="{% url 'vehiculos:lista' %}" class="btn btn-outline-danger"><i class="fas fa-times"></i></a>{% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 dataTable">
+        <thead class="table-light">
+          <tr>
+            <th>Placa</th>
+            <th>Vehículo</th>
+            <th class="d-none d-md-table-cell">Año</th>
+            <th class="d-none d-lg-table-cell">Combustible</th>
+            <th class="d-none d-md-table-cell">Kilometraje</th>
+            <th class="d-none d-md-table-cell">Cliente</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in vehiculos %}
+          <tr>
+            <td><span class="badge bg-dark fs-6">{{ v.placa }}</span></td>
+            <td>
+              <a href="{% url 'vehiculos:detalle' v.pk %}" class="fw-semibold text-decoration-none">{{ v.marca }} {{ v.modelo }}</a>
+              <div class="d-md-none small text-muted">{{ v.anio }}</div>
+            </td>
+            <td class="d-none d-md-table-cell">{{ v.anio }}</td>
+            <td class="d-none d-lg-table-cell"><span class="badge bg-secondary">{{ v.get_tipo_combustible_display }}</span></td>
+            <td class="d-none d-md-table-cell">{{ v.kilometraje_actual|floatformat:0 }} km</td>
+            <td class="d-none d-md-table-cell"><a href="{% url 'clientes:detalle' v.cliente.pk %}" class="text-decoration-none small">{{ v.cliente.nombre_completo }}</a></td>
+            <td class="text-center">
+              <div class="btn-group" role="group">
+                <a href="{% url 'vehiculos:detalle' v.pk %}" class="btn btn-sm btn-secondary" title="Ver"><i class="fas fa-eye"></i></a>
+                <a href="{% url 'vehiculos:editar' v.pk %}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                <a href="{% url 'ordenes:crear' %}?vehiculo={{ v.pk }}" class="btn btn-sm btn-primary" title="Nueva orden"><i class="fas fa-clipboard-plus"></i></a>
+                <a href="{% url 'vehiculos:eliminar' v.pk %}" class="btn btn-sm btn-danger" title="Eliminar"><i class="fas fa-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-car fa-2x d-block mb-2"></i>No se encontraron vehículos</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer bg-white text-muted small">Total: {{ vehiculos.count }} vehículo(s)</div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/>
+<style>body{font-family:Arial,sans-serif;font-size:11px;color:#333;padding:20px;}h1{color:#1a1a2e;font-size:18px;}table{width:100%;border-collapse:collapse;margin-top:8px;}th{background:#1a1a2e;color:white;padding:5px 8px;text-align:left;font-size:10px;}td{padding:4px 8px;border-bottom:1px solid #eee;}tr:nth-child(even){background:#f8f9fa;}.footer{border-top:1px solid #ccc;margin-top:15px;padding-top:5px;font-size:9px;color:#999;text-align:center;}</style>
+</head><body>
+<table style="margin-bottom:15px"><tr>
+<td><h1>{{ taller_nombre }}</h1><p>{{ taller_direccion }}</p></td>
+<td style="text-align:right"><h2>HISTORIAL DE MANTENIMIENTO</h2></td>
+</tr></table>
+<p><strong>Vehículo:</strong> {{ vehiculo.placa }} — {{ vehiculo.marca }} {{ vehiculo.modelo }} {{ vehiculo.anio }}</p>
+<p><strong>Propietario:</strong> {{ vehiculo.cliente.nombre_completo }} — Tel: {{ vehiculo.cliente.telefono }}</p>
+<p><strong>Km actual:</strong> {{ vehiculo.kilometraje_actual }} km</p>
+<table>
+<thead><tr><th>Servicio</th><th>Descripción</th><th>Km servicio</th><th>Próx. km</th><th>Costo</th><th>Técnico</th><th>Fecha</th></tr></thead>
+<tbody>{% for h in historial %}<tr>
+<td>{{ h.tipo_servicio.nombre|default:"—" }}</td>
+<td>{{ h.descripcion|truncatechars:50 }}</td>
+<td>{{ h.km_al_servicio }} km</td>
+<td>{{ h.proximo_km_sugerido|default:"—" }}</td>
+<td>${{ h.costo }}</td>
+<td>{{ h.tecnico.get_full_name|default:"—" }}</td>
+<td>{{ h.fecha_servicio|date:"d/m/Y" }}</td>
+</tr>{% empty %}<tr><td colspan="7" style="text-align:center;color:#999">Sin historial</td></tr>{% endfor %}
+</tbody></table>
+<div class="footer">{{ taller_nombre }} — Generado el {% now "d/m/Y H:i" %}</div>
+</body></html>

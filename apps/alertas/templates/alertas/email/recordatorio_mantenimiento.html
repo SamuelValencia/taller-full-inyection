@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recordatorio de Mantenimiento — {{ taller_nombre }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f4f4f4; color: #333; }
+  .wrapper { max-width: 600px; margin: 30px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px 40px; text-align: center; }
+  .header-logo { font-size: 24px; font-weight: bold; color: #f59e0b; letter-spacing: 1px; }
+  .header-sub { color: #94a3b8; font-size: 12px; margin-top: 4px; }
+  /* ALERTA TOP */
+  .alerta-banner { background: #f59e0b; color: #1a1a2e; text-align: center; padding: 12px 20px; font-weight: bold; font-size: 14px; }
+  /* BODY */
+  .body { padding: 35px 40px; }
+  .saludo { font-size: 18px; color: #1a1a2e; font-weight: bold; margin-bottom: 16px; }
+  .intro { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 24px; }
+  /* CARD VEHÍCULO */
+  .card-vehiculo { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+  .card-titulo { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; letter-spacing: .5px; margin-bottom: 12px; }
+  .vehiculo-nombre { font-size: 20px; font-weight: bold; color: #1a1a2e; margin-bottom: 4px; }
+  .vehiculo-placa { display: inline-block; background: #1a1a2e; color: #f59e0b; padding: 3px 12px; border-radius: 4px; font-weight: bold; font-size: 14px; margin-bottom: 10px; }
+  /* FECHAS */
+  .fechas-grid { display: table; width: 100%; border-collapse: separate; border-spacing: 10px; margin-bottom: 24px; }
+  .fecha-item { display: table-cell; width: 50%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+  .fecha-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-bottom: 6px; }
+  .fecha-valor { font-size: 18px; font-weight: bold; color: #1a1a2e; }
+  .fecha-sub { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+  .fecha-proximo { border-color: #f59e0b; background: #fffbeb; }
+  .fecha-proximo .fecha-valor { color: #d97706; }
+  /* BADGE DÍAS */
+  .badge-dias { display: inline-block; background: #d97706; color: white; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 20px; }
+  /* SEPARADOR */
+  .divider { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+  /* CTA */
+  .cta-section { text-align: center; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+  .cta-text { font-size: 14px; color: #555; margin-bottom: 16px; }
+  .cta-btn { display: inline-block; background: #f59e0b; color: #1a1a2e; padding: 12px 32px; border-radius: 6px; font-weight: bold; font-size: 15px; text-decoration: none; }
+  /* CONTACTO */
+  .contacto { font-size: 13px; color: #555; line-height: 1.7; }
+  /* FOOTER */
+  .footer { background: #f1f5f9; padding: 20px 40px; text-align: center; }
+  .footer-nombre { font-weight: bold; color: #1a1a2e; font-size: 14px; }
+  .footer-info { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .footer-aviso { font-size: 11px; color: #94a3b8; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-logo">🔧 {{ taller_nombre }}</div>
+    <div class="header-sub">Taller Mecánico Automotriz — {{ taller_direccion }}</div>
+  </div>
+
+  <!-- BANNER -->
+  <div class="alerta-banner">
+    ⏰ Recordatorio de Mantenimiento Preventivo
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+    <div class="saludo">Estimado/a {{ nombre_cliente }},</div>
+    <p class="intro">
+      Esperamos que se encuentre muy bien.<br><br>
+      Nos comunicamos desde <strong>{{ taller_nombre }}</strong> para recordarle que el
+      próximo mantenimiento preventivo de su vehículo está próximo.
+      Realizar el mantenimiento a tiempo garantiza el rendimiento, la seguridad y la vida útil de su vehículo.
+    </p>
+
+    <!-- VEHÍCULO -->
+    <div class="card-vehiculo">
+      <div class="card-titulo">🚗 Su vehículo</div>
+      <div class="vehiculo-nombre">{{ marca }} {{ modelo }} {{ anio }}</div>
+      <div class="vehiculo-placa">{{ placa }}</div>
+    </div>
+
+    <!-- FECHAS -->
+    <table class="fechas-grid">
+      <tr>
+        <td class="fecha-item">
+          <div class="fecha-label">Último mantenimiento</div>
+          <div class="fecha-valor">{{ fecha_ultimo_mantenimiento|date:"d/m/Y" }}</div>
+          <div class="fecha-sub">{{ tipo_mantenimiento }}</div>
+        </td>
+        <td class="fecha-item fecha-proximo">
+          <div class="fecha-label">⚠️ Próximo mantenimiento</div>
+          <div class="fecha-valor">{{ fecha_proximo_mantenimiento|date:"d/m/Y" }}</div>
+          {% if kilometraje_proximo %}
+          <div class="fecha-sub">o a los {{ kilometraje_proximo|floatformat:0 }} km</div>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+
+    {% if dias_restantes is not None %}
+    <div style="text-align:center; margin-bottom:20px">
+      {% if dias_restantes <= 0 %}
+      <span class="badge-dias" style="background:#dc2626">⚠️ ¡Mantenimiento vencido hace {{ dias_restantes|floatformat:0|slice:"1:" }} días!</span>
+      {% elif dias_restantes <= 5 %}
+      <span class="badge-dias">⏳ Faltan {{ dias_restantes }} día{{ dias_restantes|pluralize }} para su mantenimiento</span>
+      {% else %}
+      <span class="badge-dias" style="background:#059669">✅ Faltan {{ dias_restantes }} días para su mantenimiento</span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <hr class="divider">
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <p class="cta-text">
+        Le invitamos a <strong>contactarnos con anticipación</strong> para agendar
+        su cita y garantizar la disponibilidad de nuestros técnicos especializados.
+      </p>
+      {% if taller_telefono %}
+      <a href="https://wa.me/593{{ taller_telefono|slice:'1:' }}" class="cta-btn">
+        📱 Agendar por WhatsApp
+      </a>
+      {% else %}
+      <span class="cta-btn" style="background:#475569; color:white">📞 Contáctenos</span>
+      {% endif %}
+    </div>
+
+    <div class="contacto">
+      Será un <strong>gusto atenderlo nuevamente</strong>. Nuestro equipo de técnicos
+      especializados está listo para brindarle el mejor servicio.<br><br>
+      Atentamente,<br>
+      <strong>{{ taller_nombre }}</strong><br>
+      {% if taller_telefono %}📞 {{ taller_telefono }}<br>{% endif %}
+      {% if taller_direccion %}📍 {{ taller_direccion }}{% endif %}
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-nombre">{{ taller_nombre }}</div>
+    <div class="footer-info">
+      {% if taller_telefono %}{{ taller_telefono }}{% endif %}
+      {% if taller_direccion %} · {{ taller_direccion }}{% endif %}
+    </div>
+    <div class="footer-aviso">
+      Este correo fue generado automáticamente por el sistema de mantenimiento preventivo.<br>
+      Si no desea recibir estos recordatorios, comuníquese con nosotros.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+
+  <div class="w-100" style="max-width: 900px;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mb-md-4 gap-2">
+      <h1 class="h3 fw-bold mb-0"><i class="fas fa-user-plus me-2 text-primary"></i>{{ titulo }}</h1>
+      <a href="{% url 'usuarios:lista' %}" class="btn btn-secondary btn-sm btn-md-auto"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-3 p-md-4">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+              {{ form.username }}
+              {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors }}</div>{% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+              {{ form.email }}
+              {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Nombres</label>
+              {{ form.first_name }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Apellidos</label>
+              {{ form.last_name }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Rol <span class="text-danger">*</span></label>
+              {{ form.rol }}
+              {% if form.rol.errors %}<div class="text-danger small">{{ form.rol.errors }}</div>{% endif %}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Teléfono</label>
+              {{ form.telefono }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Cédula</label>
+              {{ form.cedula }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Especialidad</label>
+              {{ form.especialidad }}
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Activo</label>
+              <div class="form-check mt-2">
+                {{ form.activo }}
+                <label class="form-check-label" for="{{ form.activo.id_for_label }}">Usuario activo</label>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Contraseña{% if not form.instance.pk %} <span class="text-danger">*</span>{% endif %}</label>
+              {{ form.password }}
+              {% if form.password.errors %}<div class="text-danger small">{{ form.password.errors }}</div>{% endif %}
+              {% if form.instance.pk %}<small class="text-muted">Dejar en blanco para mantener la actual</small>{% endif %}
+            </div>
+          </div>
+          <hr>
+          <div class="d-flex flex-column flex-md-row gap-2">
+            <button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fas fa-save me-2"></i>Guardar</button>
+            <a href="{% url 'usuarios:lista' %}" class="btn btn-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+{% endblock %}

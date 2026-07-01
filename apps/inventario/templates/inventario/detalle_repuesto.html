@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ repuesto.codigo }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 fw-bold mb-0"><i class="fas fa-box me-2 text-primary"></i>{{ repuesto.codigo }}</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'inventario:editar_repuesto' repuesto.pk %}" class="btn btn-warning"><i class="fas fa-edit me-1"></i>Editar</a>
+    <a href="{% url 'inventario:lista_repuestos' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white fw-semibold"><i class="fas fa-info-circle me-2"></i>Información</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Código</dt><dd class="col-7 fw-bold">{{ repuesto.codigo }}</dd>
+          <dt class="col-5 text-muted">Nombre</dt><dd class="col-7">{{ repuesto.nombre }}</dd>
+          <dt class="col-5 text-muted">Categoría</dt><dd class="col-7">{{ repuesto.categoria.nombre|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Marca</dt><dd class="col-7">{{ repuesto.marca|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Modelo</dt><dd class="col-7">{{ repuesto.modelo|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Ubicación</dt><dd class="col-7">{{ repuesto.ubicacion|default:"—" }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-success text-white fw-semibold"><i class="fas fa-warehouse me-2"></i>Stock</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Stock Actual</dt><dd class="col-7 fw-bold {% if repuesto.stock_bajo %}text-danger{% endif %}">{{ repuesto.stock_actual }}</dd>
+          <dt class="col-5 text-muted">Stock Mínimo</dt><dd class="col-7">{{ repuesto.stock_minimo }}</dd>
+          <dt class="col-5 text-muted">Stock Máximo</dt><dd class="col-7">{{ repuesto.stock_maximo|default:"—" }}</dd>
+          <dt class="col-5 text-muted">Estado</dt>
+          <dd class="col-7">
+            {% if repuesto.stock_bajo %}
+            <span class="badge bg-danger">Stock bajo</span>
+            {% else %}
+            <span class="badge bg-success">OK</span>
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-warning text-dark fw-semibold"><i class="fas fa-dollar-sign me-2"></i>Precios</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Precio Compra</dt><dd class="col-7 fw-bold">${{ repuesto.precio_compra|floatformat:2 }}</dd>
+          <dt class="col-5 text-muted">Precio Venta</dt><dd class="col-7 fw-bold">${{ repuesto.precio_venta|floatformat:2 }}</dd>
+          <dt class="col-5 text-muted">Valor Inventario</dt><dd class="col-7 fw-bold">${{ repuesto.valor_inventario|floatformat:2 }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white fw-semibold"><i class="fas fa-history me-2 text-primary"></i>Movimientos Recientes</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Stock Anterior</th>
+            <th>Stock Nuevo</th>
+            <th>Motivo</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for movimiento in movimientos %}
+          <tr>
+            <td>
+              <span class="badge {% if movimiento.tipo == 'ENTRADA' %}bg-success{% elif movimiento.tipo == 'SALIDA' %}bg-danger{% else %}bg-warning{% endif %}">
+                {{ movimiento.get_tipo_display }}
+              </span>
+            </td>
+            <td class="fw-bold {% if movimiento.cantidad < 0 %}text-danger{% endif %}">{{ movimiento.cantidad }}</td>
+            <td>{{ movimiento.stock_anterior }}</td>
+            <td>{{ movimiento.stock_nuevo }}</td>
+            <td>{{ movimiento.motivo|default:"—" }}</td>
+            <td>{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-4">Sin movimientos registrados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

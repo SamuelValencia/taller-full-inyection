@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page { size: A4; margin: 1.5cm 1.8cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #222; }
+
+  /* HEADER */
+  .header { width: 100%; border-bottom: 3px solid #d97706; padding-bottom: 8px; margin-bottom: 10px; }
+  .taller-nombre { font-size: 16pt; font-weight: bold; color: #d97706; }
+  .taller-sub { font-size: 8pt; color: #555; margin-top: 2px; }
+  .doc-titulo { font-size: 14pt; font-weight: bold; color: #d97706; text-align: right; }
+  .doc-numero { font-size: 10pt; font-weight: bold; text-align: right; color: #333; }
+
+  /* ESTADO BADGE */
+  .estado-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 8pt; font-weight: bold; }
+  .estado-recibida { background:#e2e8f0; color:#475569; }
+  .estado-diagnostico { background:#e0f2fe; color:#0369a1; }
+  .estado-en-proceso { background:#fef3c7; color:#92400e; }
+  .estado-finalizada { background:#d1fae5; color:#065f46; }
+  .estado-entregada { background:#f0fdf4; color:#15803d; }
+  .estado-cancelada { background:#fee2e2; color:#b91c1c; }
+
+  /* SECCIONES */
+  .seccion-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #d97706;
+    border-bottom: 1px solid #d97706; padding-bottom: 2px; margin-bottom: 5px; margin-top: 10px; }
+
+  .info-grid { width: 100%; border-collapse: collapse; }
+  .info-grid td { padding: 2px 4px; font-size: 8.5pt; vertical-align: top; }
+  .info-label { color: #666; font-weight: bold; width: 110px; white-space: nowrap; }
+
+  /* TABLA DE TRABAJOS */
+  .tabla-trabajos { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 8.5pt; }
+  .tabla-trabajos thead tr { background: #d97706; color: white; }
+  .tabla-trabajos th { padding: 5px 6px; text-align: left; font-size: 8pt; }
+  .tabla-trabajos th.right { text-align: right; }
+  .tabla-trabajos td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  .tabla-trabajos td.right { text-align: right; }
+  .tabla-trabajos tr.servicio-row { background: #fffbeb; }
+  .tabla-trabajos tr.repuesto-row { background: #f8fafc; }
+  .badge-tipo { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 7pt; font-weight: bold; }
+  .badge-servicio { background: #fef3c7; color: #92400e; }
+  .badge-repuesto { background: #e2e8f0; color: #475569; }
+
+  /* TOTALES */
+  .totales-table { width: 210px; float: right; margin-top: 8px; font-size: 9pt; border-collapse: collapse; }
+  .totales-table td { padding: 3px 6px; }
+  .totales-table tr.total-final { background: #d97706; color: white; font-weight: bold; font-size: 10pt; }
+  .totales-table td.label { color: #555; }
+  .totales-table td.valor { text-align: right; }
+  .clearfix::after { content: ""; display: table; clear: both; }
+
+  /* CAJAS */
+  .obs-box { border: 1px solid #e5e7eb; border-radius: 4px; padding: 6px 8px; min-height: 35px;
+    font-size: 8.5pt; color: #333; background: #fafafa; }
+  .condiciones-box { border: 1px solid #fbbf24; border-radius: 4px; padding: 6px 8px;
+    font-size: 7.5pt; color: #555; background: #fffbeb; }
+
+  /* FIRMAS */
+  .firmas-table { width: 100%; margin-top: 35px; }
+  .firma-col { text-align: center; vertical-align: bottom; }
+  .firma-linea { border-top: 1px solid #333; width: 75%; margin: 0 auto; padding-top: 5px; font-size: 8pt; }
+
+  /* FOOTER */
+  .footer { position: fixed; bottom: 0; left: 0; right: 0; border-top: 1px solid #ccc;
+    padding-top: 4px; font-size: 7pt; color: #888; text-align: center; }
+
+  .two-col { width: 100%; border-collapse: collapse; }
+  .two-col td { vertical-align: top; padding: 0 5px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="footer">
+  {{ taller_nombre }} &nbsp;|&nbsp; {{ taller_telefono }} &nbsp;|&nbsp; {{ taller_direccion }} &nbsp;|&nbsp;
+  Documento generado el {% now "d/m/Y H:i" %}
+</div>
+
+<!-- ENCABEZADO -->
+<div class="header">
+  <table style="width:100%">
+    <tr>
+      <td style="width:60%">
+        <div class="taller-nombre">{{ taller_nombre }}</div>
+        <div class="taller-sub">{{ taller_direccion }}</div>
+        <div class="taller-sub">{{ taller_telefono }}</div>
+      </td>
+      <td style="width:40%; text-align:right">
+        <div class="doc-titulo">ORDEN DE TRABAJO</div>
+        <div class="doc-numero">N°: {{ orden.numero_orden }}</div>
+        <div style="margin-top:4px">
+          <span class="estado-badge
+            {% if orden.estado == 'RECIBIDA' %}estado-recibida
+            {% elif orden.estado == 'DIAGNOSTICO' %}estado-diagnostico
+            {% elif orden.estado == 'EN_PROCESO' %}estado-en-proceso
+            {% elif orden.estado == 'FINALIZADA' %}estado-finalizada
+            {% elif orden.estado == 'ENTREGADA' %}estado-entregada
+            {% elif orden.estado == 'CANCELADA' %}estado-cancelada
+            {% else %}estado-recibida{% endif %}">
+            {{ orden.get_estado_display|upper }}
+          </span>
+          <span style="font-size:7.5pt; color:#888; margin-left:6px">
+            Prioridad: <strong>{{ orden.get_prioridad_display }}</strong>
+          </span>
+        </div>
+        <div style="margin-top:4px; font-size:8pt; color:#555">
+          Ingreso: {{ orden.fecha_ingreso|date:"d/m/Y H:i" }}
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- CLIENTE Y VEHÍCULO -->
+<table class="two-col">
+  <tr>
+    <td style="width:50%">
+      <div class="seccion-titulo">Datos del Cliente</div>
+      <table class="info-grid">
+        <tr><td class="info-label">Nombres:</td><td>{{ orden.cliente.nombres }} {{ orden.cliente.apellidos }}</td></tr>
+        <tr><td class="info-label">{{ orden.cliente.get_tipo_documento_display }}:</td><td>{{ orden.cliente.numero_documento }}</td></tr>
+        <tr><td class="info-label">Teléfono:</td><td>{{ orden.cliente.telefono }}</td></tr>
+        {% if orden.cliente.email %}<tr><td class="info-label">Correo:</td><td>{{ orden.cliente.email }}</td></tr>{% endif %}
+        {% if orden.cliente.direccion %}<tr><td class="info-label">Dirección:</td><td>{{ orden.cliente.direccion }}</td></tr>{% endif %}
+      </table>
+    </td>
+    <td style="width:50%">
+      <div class="seccion-titulo">Datos del Vehículo</div>
+      <table class="info-grid">
+        <tr><td class="info-label">Placa:</td><td><strong>{{ orden.vehiculo.placa }}</strong></td></tr>
+        <tr><td class="info-label">Marca / Modelo:</td><td>{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</td></tr>
+        <tr><td class="info-label">Año / Color:</td><td>{{ orden.vehiculo.anio }} / {{ orden.vehiculo.color|default:"—" }}</td></tr>
+        <tr><td class="info-label">Kilometraje:</td><td>{{ orden.kilometraje_ingreso|default:0 }} km</td></tr>
+        {% if orden.vehiculo.numero_motor %}<tr><td class="info-label">N° Motor:</td><td>{{ orden.vehiculo.numero_motor }}</td></tr>{% endif %}
+        {% if orden.vehiculo.numero_vin %}<tr><td class="info-label">Chasis/VIN:</td><td>{{ orden.vehiculo.numero_vin }}</td></tr>{% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- DATOS DE LA ORDEN -->
+<div class="seccion-titulo">Datos de la Orden</div>
+<table class="info-grid" style="width:100%">
+  <tr>
+    <td class="info-label">Tipo de trabajo:</td>
+    <td style="width:25%">{{ orden.get_tipo_trabajo_display }}</td>
+    <td class="info-label">Asesor / Recepcionista:</td>
+    <td style="width:25%">{{ orden.recepcionista|default:"—" }}</td>
+  </tr>
+  <tr>
+    <td class="info-label">Técnico asignado:</td>
+    <td>{{ orden.tecnico_asignado|default:"Sin asignar" }}</td>
+    <td class="info-label">Fecha est. entrega:</td>
+    <td>{{ orden.fecha_estimada_entrega|date:"d/m/Y"|default:"No definida" }}</td>
+  </tr>
+</table>
+
+<!-- SÍNTOMAS Y DIAGNÓSTICO -->
+<table class="two-col" style="margin-top:8px">
+  <tr>
+    <td style="width:50%">
+      <div class="seccion-titulo">Síntomas Reportados por el Cliente</div>
+      <div class="obs-box">{{ orden.descripcion_problema }}</div>
+    </td>
+    <td style="width:50%">
+      <div class="seccion-titulo">Diagnóstico Técnico</div>
+      <div class="obs-box">{{ orden.diagnostico|default:"Pendiente" }}</div>
+    </td>
+  </tr>
+</table>
+
+<!-- TABLA DE TRABAJOS -->
+<div class="seccion-titulo">Trabajos Autorizados / Ítems</div>
+<table class="tabla-trabajos">
+  <thead>
+    <tr>
+      <th style="width:70px">Tipo</th>
+      <th>Descripción</th>
+      <th class="right" style="width:55px">Cant.</th>
+      <th class="right" style="width:85px">P. Unit.</th>
+      <th class="right" style="width:90px">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for det in detalles %}
+    <tr class="{% if det.tipo == 'SERVICIO' %}servicio-row{% else %}repuesto-row{% endif %}">
+      <td>
+        <span class="badge-tipo {% if det.tipo == 'SERVICIO' %}badge-servicio{% else %}badge-repuesto{% endif %}">
+          {% if det.tipo == 'SERVICIO' %}Servicio{% else %}Repuesto{% endif %}
+        </span>
+      </td>
+      <td>{{ det.descripcion }}</td>
+      <td class="right">{{ det.cantidad|floatformat:0 }}</td>
+      <td class="right">$ {{ det.precio_unitario|floatformat:2 }}</td>
+      <td class="right"><strong>$ {{ det.subtotal|floatformat:2 }}</strong></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="text-align:center; color:#888; padding:10px">Sin ítems registrados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- TOTALES -->
+<div class="clearfix">
+  <table class="totales-table">
+    <tr>
+      <td class="label">Mano de obra:</td>
+      <td class="valor">$ {{ orden.costo_mano_obra|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td class="label">Repuestos:</td>
+      <td class="valor">$ {{ orden.costo_repuestos|floatformat:2 }}</td>
+    </tr>
+    {% if orden.descuento %}
+    <tr>
+      <td class="label">Descuento:</td>
+      <td class="valor" style="color:#b91c1c">- $ {{ orden.descuento|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+    <tr class="total-final">
+      <td style="color:white">TOTAL:</td>
+      <td class="valor">$ {{ orden.costo_total|floatformat:2 }}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- AUTORIZACIÓN DEL CLIENTE -->
+{% if orden.autorizacion_cliente %}
+<div class="seccion-titulo" style="margin-top:15px">Autorización del Cliente</div>
+<div class="obs-box">{{ orden.autorizacion_cliente }}</div>
+{% endif %}
+
+<!-- OBSERVACIONES -->
+{% if orden.observaciones %}
+<div class="seccion-titulo">Observaciones</div>
+<div class="obs-box">{{ orden.observaciones }}</div>
+{% endif %}
+
+<!-- CONDICIONES DEL TALLER -->
+<div class="seccion-titulo" style="margin-top:12px">Condiciones del Servicio</div>
+<div class="condiciones-box">
+  1. El taller no se hace responsable por objetos dejados dentro del vehículo. &nbsp;
+  2. Los repuestos originales quedan en poder del cliente si los solicita. &nbsp;
+  3. El cliente autoriza al taller a realizar los trabajos indicados en esta orden. &nbsp;
+  4. El vehículo que no sea retirado en 30 días genera costo de almacenamiento. &nbsp;
+  5. Los trabajos adicionales serán consultados previamente al cliente.
+</div>
+
+<!-- FIRMAS -->
+<table class="firmas-table">
+  <tr>
+    <td class="firma-col" style="width:33%">
+      <div class="firma-linea">
+        <strong>Asesor / Recepcionista</strong><br>
+        {{ orden.recepcionista|default:"" }}<br>
+        <span style="color:#888">{{ taller_nombre }}</span>
+      </div>
+    </td>
+    <td class="firma-col" style="width:33%">
+      <div class="firma-linea">
+        <strong>Técnico Responsable</strong><br>
+        {{ orden.tecnico_asignado|default:"" }}<br>
+        <span style="color:#888">{{ taller_nombre }}</span>
+      </div>
+    </td>
+    <td class="firma-col" style="width:33%">
+      <div class="firma-linea">
+        <strong>Firma y conformidad del cliente</strong><br>
+        {{ orden.cliente.nombres }} {{ orden.cliente.apellidos }}<br>
+        <span style="color:#888">{{ orden.cliente.get_tipo_documento_display }}: {{ orden.cliente.numero_documento }}</span>
+      </div>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

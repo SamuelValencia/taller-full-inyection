@@ -1,0 +1,25 @@
+﻿{% extends "base.html" %}{% block title %}{{ titulo }}{% endblock %}{% block content %}
+
+  <div class="w-100" style="max-width: 600px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3 fw-bold mb-0"><i class="fas fa-history me-2 text-info"></i>{{ titulo }}</h1>
+      <a href="{% url 'mantenimiento:lista' %}" class="btn btn-secondary"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+    </div>
+    <div class="card border-0 shadow-sm"><div class="card-body p-4">
+    <form method="post" novalidate>{% csrf_token %}
+    <div class="row g-3">
+  <div class="col-12"><label class="form-label fw-semibold">Vehículo</label>{{ form.vehiculo }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Orden de servicio (opcional)</label>{{ form.orden }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Tipo de servicio</label>{{ form.tipo_servicio }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Km al momento del servicio</label>{{ form.km_al_servicio }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Fecha del servicio</label>{{ form.fecha_servicio }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Descripción</label>{{ form.descripcion }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Próximo km sugerido</label>{{ form.proximo_km_sugerido }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Próxima fecha sugerida</label>{{ form.proxima_fecha_sugerida }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Costo ($)</label>{{ form.costo }}</div>
+  <div class="col-12"><label class="form-label fw-semibold">Observaciones</label>{{ form.observaciones }}</div>
+</div>
+<hr>
+<div class="d-flex gap-2"><button type="submit" class="btn btn-primary fw-semibold px-4"><i class="fas fa-save me-2"></i>Registrar</button><a href="{% url 'mantenimiento:lista' %}" class="btn btn-secondary">Cancelar</a></div>
+</form></div></div>
+{% endblock %}

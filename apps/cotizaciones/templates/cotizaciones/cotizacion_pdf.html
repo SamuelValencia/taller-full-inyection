@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page { size: A4; margin: 1.5cm 1.8cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #222; }
+
+  /* HEADER */
+  .header { width: 100%; border-bottom: 3px solid #1a56db; padding-bottom: 8px; margin-bottom: 10px; }
+  .header-table { width: 100%; }
+  .taller-nombre { font-size: 16pt; font-weight: bold; color: #1a56db; }
+  .taller-sub { font-size: 8pt; color: #555; margin-top: 2px; }
+  .doc-titulo { font-size: 14pt; font-weight: bold; color: #1a56db; text-align: right; }
+  .doc-numero { font-size: 10pt; text-align: right; color: #333; }
+  .doc-estado { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 8pt; font-weight: bold; }
+  .estado-borrador { background: #e2e8f0; color: #555; }
+  .estado-enviada { background: #dbeafe; color: #1d4ed8; }
+  .estado-aprobada { background: #d1fae5; color: #065f46; }
+  .estado-rechazada { background: #fee2e2; color: #b91c1c; }
+
+  /* SECCIONES */
+  .seccion-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #1a56db;
+    border-bottom: 1px solid #1a56db; padding-bottom: 2px; margin-bottom: 5px; margin-top: 10px; }
+
+  .info-grid { width: 100%; }
+  .info-grid td { padding: 2px 4px; font-size: 8.5pt; vertical-align: top; }
+  .info-label { color: #666; font-weight: bold; width: 100px; white-space: nowrap; }
+  .info-block { width: 48%; display: inline-block; vertical-align: top; }
+
+  /* TABLA DE SERVICIOS */
+  .tabla-servicios { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 8.5pt; }
+  .tabla-servicios thead tr { background: #1a56db; color: white; }
+  .tabla-servicios th { padding: 5px 6px; text-align: left; font-size: 8pt; }
+  .tabla-servicios th.right { text-align: right; }
+  .tabla-servicios td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  .tabla-servicios td.right { text-align: right; }
+  .tabla-servicios tr.servicio-row { background: #f8fafc; }
+  .tabla-servicios tr.repuesto-row { background: #fffbeb; }
+  .badge-tipo { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 7pt; font-weight: bold; }
+  .badge-servicio { background: #dbeafe; color: #1d4ed8; }
+  .badge-repuesto { background: #fef3c7; color: #92400e; }
+
+  /* TOTALES */
+  .totales-table { width: 200px; float: right; margin-top: 8px; font-size: 9pt; border-collapse: collapse; }
+  .totales-table td { padding: 3px 6px; }
+  .totales-table tr.total-final { background: #1a56db; color: white; font-weight: bold; font-size: 10pt; }
+  .totales-table td.label { color: #555; }
+  .totales-table td.valor { text-align: right; }
+  .clearfix::after { content: ""; display: table; clear: both; }
+
+  /* FIRMAS */
+  .firmas-section { margin-top: 30px; }
+  .firma-line { display: inline-block; width: 40%; border-top: 1px solid #333; padding-top: 4px;
+    text-align: center; font-size: 8pt; color: #444; }
+
+  /* FOOTER */
+  .footer { position: fixed; bottom: 0; left: 0; right: 0; border-top: 1px solid #ccc;
+    padding-top: 4px; font-size: 7pt; color: #888; text-align: center; }
+
+  /* MISC */
+  .two-col { width: 100%; }
+  .two-col td { vertical-align: top; padding: 0 5px; }
+  .obs-box { border: 1px solid #e5e7eb; border-radius: 4px; padding: 6px 8px; min-height: 40px;
+    font-size: 8.5pt; color: #333; background: #fafafa; }
+</style>
+</head>
+<body>
+
+<div class="footer">
+  {{ taller_nombre }} &nbsp;|&nbsp; {{ taller_telefono }} &nbsp;|&nbsp; {{ taller_direccion }} &nbsp;|&nbsp;
+  Documento generado el {% now "d/m/Y H:i" %}
+</div>
+
+<!-- ENCABEZADO -->
+<div class="header">
+  <table class="header-table">
+    <tr>
+      <td style="width:60%">
+        <div class="taller-nombre">{{ taller_nombre }}</div>
+        <div class="taller-sub">{{ taller_direccion }}</div>
+        <div class="taller-sub">{{ taller_telefono }}</div>
+      </td>
+      <td style="width:40%; text-align:right">
+        <div class="doc-titulo">PROFORMA / COTIZACIÓN</div>
+        <div class="doc-numero">N°: <strong>{{ cotizacion.numero_cotizacion }}</strong></div>
+        <div style="margin-top:4px">
+          <span class="doc-estado
+            {% if cotizacion.estado == 'BORRADOR' %}estado-borrador
+            {% elif cotizacion.estado == 'ENVIADA' %}estado-enviada
+            {% elif cotizacion.estado == 'APROBADA' %}estado-aprobada
+            {% elif cotizacion.estado == 'RECHAZADA' %}estado-rechazada{% endif %}">
+            {{ cotizacion.get_estado_display|upper }}
+          </span>
+        </div>
+        <div style="margin-top:4px; font-size:8pt; color:#555">
+          Fecha: {{ cotizacion.fecha_creacion|date:"d/m/Y" }}&nbsp;
+          {% if cotizacion.fecha_validez %}| Válida hasta: {{ cotizacion.fecha_validez|date:"d/m/Y" }}{% endif %}
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- DATOS CLIENTE Y VEHÍCULO -->
+<table class="two-col">
+  <tr>
+    <td style="width:50%">
+      <div class="seccion-titulo">Datos del Cliente</div>
+      <table class="info-grid">
+        <tr><td class="info-label">Nombre:</td><td>{{ cotizacion.cliente.nombres }} {{ cotizacion.cliente.apellidos }}</td></tr>
+        <tr><td class="info-label">{{ cotizacion.cliente.get_tipo_documento_display }}:</td><td>{{ cotizacion.cliente.numero_documento }}</td></tr>
+        <tr><td class="info-label">Teléfono:</td><td>{{ cotizacion.cliente.telefono }}</td></tr>
+        {% if cotizacion.cliente.email %}<tr><td class="info-label">Correo:</td><td>{{ cotizacion.cliente.email }}</td></tr>{% endif %}
+        {% if cotizacion.cliente.direccion %}<tr><td class="info-label">Dirección:</td><td>{{ cotizacion.cliente.direccion }}</td></tr>{% endif %}
+      </table>
+    </td>
+    <td style="width:50%">
+      <div class="seccion-titulo">Datos del Vehículo</div>
+      <table class="info-grid">
+        <tr><td class="info-label">Placa:</td><td><strong>{{ cotizacion.vehiculo.placa }}</strong></td></tr>
+        <tr><td class="info-label">Marca / Modelo:</td><td>{{ cotizacion.vehiculo.marca }} {{ cotizacion.vehiculo.modelo }}</td></tr>
+        <tr><td class="info-label">Año / Color:</td><td>{{ cotizacion.vehiculo.anio }} / {{ cotizacion.vehiculo.color|default:"—" }}</td></tr>
+        <tr><td class="info-label">Kilometraje:</td><td>{{ cotizacion.vehiculo.kilometraje_actual|default:0 }} km</td></tr>
+        {% if cotizacion.vehiculo.numero_motor %}<tr><td class="info-label">N° Motor:</td><td>{{ cotizacion.vehiculo.numero_motor }}</td></tr>{% endif %}
+        {% if cotizacion.vehiculo.numero_vin %}<tr><td class="info-label">Chasis/VIN:</td><td>{{ cotizacion.vehiculo.numero_vin }}</td></tr>{% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+{% if cotizacion.descripcion %}
+<div class="seccion-titulo">Descripción del Trabajo</div>
+<div class="obs-box">{{ cotizacion.descripcion }}</div>
+{% endif %}
+
+<!-- TABLA DE SERVICIOS -->
+<div class="seccion-titulo">Detalle de Servicios y Materiales</div>
+<table class="tabla-servicios">
+  <thead>
+    <tr>
+      <th style="width:70px">Tipo</th>
+      <th>Descripción</th>
+      <th class="right" style="width:55px">Cant.</th>
+      <th class="right" style="width:85px">P. Unit.</th>
+      <th class="right" style="width:90px">Subtotal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for det in detalles %}
+    <tr class="{% if det.tipo == 'SERVICIO' %}servicio-row{% else %}repuesto-row{% endif %}">
+      <td>
+        <span class="badge-tipo {% if det.tipo == 'SERVICIO' %}badge-servicio{% else %}badge-repuesto{% endif %}">
+          {% if det.tipo == 'SERVICIO' %}Servicio{% else %}Repuesto{% endif %}
+        </span>
+      </td>
+      <td>{{ det.descripcion }}</td>
+      <td class="right">{{ det.cantidad|floatformat:0 }}</td>
+      <td class="right">$ {{ det.precio_unitario|floatformat:2 }}</td>
+      <td class="right"><strong>$ {{ det.subtotal|floatformat:2 }}</strong></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="text-align:center; color:#888; padding:10px">Sin ítems registrados.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- TOTALES -->
+<div class="clearfix">
+  <table class="totales-table">
+    <tr>
+      <td class="label">Subtotal:</td>
+      <td class="valor">$ {{ cotizacion.subtotal|floatformat:2 }}</td>
+    </tr>
+    {% if cotizacion.descuento %}
+    <tr>
+      <td class="label">Descuento:</td>
+      <td class="valor" style="color:#b91c1c">- $ {{ cotizacion.descuento|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+    {% if cotizacion.aplica_iva %}
+    <tr>
+      <td class="label">Base imponible:</td>
+      <td class="valor">$ {{ cotizacion.base_con_descuento|floatformat:2 }}</td>
+    </tr>
+    <tr>
+      <td class="label">IVA (15%):</td>
+      <td class="valor">$ {{ cotizacion.iva_monto|floatformat:2 }}</td>
+    </tr>
+    {% endif %}
+    <tr class="total-final">
+      <td class="label" style="color:white">TOTAL:</td>
+      <td class="valor">$ {{ cotizacion.total|floatformat:2 }}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- OBSERVACIONES -->
+{% if cotizacion.observaciones %}
+<div class="seccion-titulo" style="margin-top:20px">Observaciones</div>
+<div class="obs-box">{{ cotizacion.observaciones }}</div>
+{% endif %}
+
+<!-- FIRMAS -->
+<div class="firmas-section">
+  <table style="width:100%; margin-top:40px">
+    <tr>
+      <td style="text-align:center; width:50%">
+        <div style="border-top:1px solid #333; width:70%; margin:0 auto; padding-top:5px; font-size:8pt">
+          <strong>Asesor / Elaborado por</strong><br>
+          {{ cotizacion.elaborado_por|default:"" }}<br>
+          <span style="color:#888">{{ taller_nombre }}</span>
+        </div>
+      </td>
+      <td style="text-align:center; width:50%">
+        <div style="border-top:1px solid #333; width:70%; margin:0 auto; padding-top:5px; font-size:8pt">
+          <strong>Firma y conformidad del cliente</strong><br>
+          {{ cotizacion.cliente.nombres }} {{ cotizacion.cliente.apellidos }}<br>
+          <span style="color:#888">{{ cotizacion.cliente.get_tipo_documento_display }}: {{ cotizacion.cliente.numero_documento }}</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div style="margin-top:15px; font-size:7.5pt; color:#666; text-align:center; border-top:1px dashed #ccc; padding-top:6px">
+  Esta proforma tiene validez de 15 días a partir de la fecha de emisión.
+  Los precios incluyen mano de obra. Los repuestos sujetos a disponibilidad.
+</div>
+
+</body>
+</html>
