@@ -250,10 +250,82 @@ def agregar_repuesto(request, pk):
 
 
 @admin_o_mecanico_requerido
+def agregar_repuestos_sugeridos(request, pk):
+    """Recibe la selección del mecánico y agrega los repuestos sugeridos a la orden."""
+    from apps.inventario.models import Repuesto, MovimientoInventario
+    orden = get_object_or_404(OrdenTrabajo, pk=pk)
+    if request.method != "POST":
+        return redirect("ordenes:detalle", pk=pk)
+
+    repuesto_ids = request.POST.getlist("repuesto_id")
+    cantidades = request.POST.getlist("cantidad")
+    precios = request.POST.getlist("precio_unitario")
+    descripciones = request.POST.getlist("descripcion")
+
+    agregados = 0
+    for i, rid in enumerate(repuesto_ids):
+        try:
+            repuesto = Repuesto.objects.get(pk=rid, activo=True)
+            cantidad = Decimal(cantidades[i]) if i < len(cantidades) else Decimal("1")
+            precio = Decimal(precios[i]) if i < len(precios) else Decimal(str(repuesto.precio_venta or "0"))
+            descripcion = descripciones[i] if i < len(descripciones) else repuesto.nombre
+            if cantidad <= 0:
+                continue
+            det = DetalleOrdenTrabajo.objects.create(
+                orden=orden, tipo="REPUESTO",
+                repuesto_inventario=repuesto,
+                descripcion=repuesto.nombre,
+                cantidad=cantidad,
+                precio_unitario=precio,
+            )
+            # Descontar del inventario
+            stock_ant = repuesto.stock_actual
+            repuesto.stock_actual = max(Decimal("0"), repuesto.stock_actual - cantidad)
+            repuesto.save(update_fields=["stock_actual"])
+            MovimientoInventario.objects.create(
+                repuesto=repuesto,
+                tipo=MovimientoInventario.TipoMovimiento.SALIDA,
+                cantidad=cantidad,
+                stock_anterior=stock_ant,
+                stock_nuevo=repuesto.stock_actual,
+                orden_trabajo=orden,
+                motivo=f"Usado en OT {orden.numero_orden}",
+                realizado_por=request.user,
+            )
+            agregados += 1
+        except (Repuesto.DoesNotExist, Exception):
+            continue
+
+    _recalcular_costos(orden)
+    if agregados:
+        messages.success(request, f"{agregados} repuesto(s) agregado(s) a la orden.")
+    else:
+        messages.warning(request, "No se agregó ningún repuesto.")
+    return redirect("ordenes:detalle", pk=pk)
+
+
+@admin_o_mecanico_requerido
 def eliminar_detalle(request, pk, det_pk):
     det = get_object_or_404(DetalleOrdenTrabajo, pk=det_pk, orden__pk=pk)
     orden = det.orden
     if request.method == "POST":
+        # Si vino del inventario, restaurar stock
+        if det.repuesto_inventario_id:
+            from apps.inventario.models import Repuesto, MovimientoInventario
+            repuesto = det.repuesto_inventario
+            stock_ant = repuesto.stock_actual
+            repuesto.stock_actual += det.cantidad
+            repuesto.save(update_fields=["stock_actual"])
+            MovimientoInventario.objects.create(
+                repuesto=repuesto,
+                tipo=MovimientoInventario.TipoMovimiento.DEVOLUCION,
+                cantidad=det.cantidad,
+                stock_anterior=stock_ant,
+                stock_nuevo=repuesto.stock_actual,
+                orden_trabajo=orden,
+                motivo=f"Eliminado de OT {orden.numero_orden}",
+                realizado_por=request.user,
+            )
         det.delete()
         _recalcular_costos(orden)
         messages.success(request, "Ítem eliminado.")

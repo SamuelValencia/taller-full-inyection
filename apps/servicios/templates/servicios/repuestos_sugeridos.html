@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Repuestos sugeridos — {{ servicio.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+  <div>
+    <h1 class="h4 fw-bold mb-0">
+      <i class="fas fa-boxes me-2 text-warning"></i>Repuestos sugeridos
+    </h1>
+    <small class="text-muted">
+      <span class="badge bg-warning text-dark me-1">{{ servicio.get_categoria_display }}</span>
+      {{ servicio.nombre }}
+    </small>
+  </div>
+  <a href="{% url 'servicios:lista' %}" class="btn btn-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i>Volver a servicios
+  </a>
+</div>
+
+<div class="row g-3">
+
+  <!-- Lista de repuestos sugeridos actuales -->
+  <div class="col-12 col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-semibold">
+          <i class="fas fa-list me-2 text-warning"></i>Repuestos configurados
+        </h6>
+        <span class="badge bg-secondary">{{ sugeridos.count }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if sugeridos %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Repuesto</th>
+                <th class="text-center" style="width:80px">Cant.</th>
+                <th class="text-center" style="width:80px">Opcional</th>
+                <th>Nota</th>
+                <th style="width:50px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sr in sugeridos %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ sr.repuesto.nombre }}</div>
+                  <small class="text-muted">{{ sr.repuesto.codigo }}
+                    {% if sr.repuesto.marca %} · {{ sr.repuesto.marca }}{% endif %}
+                  </small>
+                </td>
+                <td class="text-center">{{ sr.cantidad_sugerida|floatformat:"-2" }}</td>
+                <td class="text-center">
+                  {% if sr.opcional %}
+                  <span class="badge bg-info">Opcional</span>
+                  {% else %}
+                  <span class="badge bg-success">Requerido</span>
+                  {% endif %}
+                </td>
+                <td><small class="text-muted">{{ sr.nota|default:"—" }}</small></td>
+                <td>
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="eliminar">
+                    <input type="hidden" name="sr_id" value="{{ sr.pk }}">
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0"
+                            onclick="return confirm('¿Quitar «{{ sr.repuesto.nombre }}» de la lista?')"
+                            title="Quitar">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+          <p class="mb-0">No hay repuestos configurados para este servicio.</p>
+          <small>Agregue repuestos desde el panel de la derecha.</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario para agregar repuesto sugerido -->
+  <div class="col-12 col-lg-5">
+    <div class="card border-0 shadow-sm border-start border-warning border-3">
+      <div class="card-header bg-warning bg-opacity-10 py-2">
+        <h6 class="mb-0 fw-semibold text-warning-emphasis">
+          <i class="fas fa-plus-circle me-2"></i>Agregar repuesto sugerido
+        </h6>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="agregar">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Repuesto <span class="text-danger">*</span></label>
+            <select name="repuesto_id" class="form-select form-select-sm" required id="sel-repuesto">
+              <option value="">— Seleccione un repuesto —</option>
+              {% for r in repuestos_disponibles %}
+              <option value="{{ r.pk }}"
+                      data-precio="{{ r.precio_venta|default:0 }}"
+                      data-stock="{{ r.stock_actual }}"
+                      {% if r.pk in repuestos_ya_ids %}data-ya="1"{% endif %}>
+                {{ r.nombre }}
+                {% if r.marca %}({{ r.marca }}){% endif %}
+                — Stock: {{ r.stock_actual }}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="aviso-ya" class="text-warning small mt-1 d-none">
+              <i class="fas fa-exclamation-triangle me-1"></i>Este repuesto ya está en la lista. Se actualizarán los datos.
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Cantidad sugerida <span class="text-danger">*</span></label>
+              <input type="number" name="cantidad_sugerida" class="form-control form-control-sm"
+                     value="1" min="0.01" step="0.01" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">¿Es opcional?</label>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="opcional" id="chk-opcional">
+                <label class="form-check-label" for="chk-opcional">Marcar como opcional</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nota <small class="text-muted">(ej: si aplica, verificar primero)</small></label>
+            <input type="text" name="nota" class="form-control form-control-sm"
+                   placeholder="Ej: Solo si existe arandela original" maxlength="200">
+          </div>
+
+          <button type="submit" class="btn btn-warning btn-sm w-100">
+            <i class="fas fa-plus me-1"></i>Guardar repuesto sugerido
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Info de precios/stock al seleccionar -->
+    <div id="info-repuesto" class="card border-0 shadow-sm mt-3 d-none">
+      <div class="card-body py-2 px-3 small">
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="text-muted">Precio venta</div>
+            <div class="fw-semibold" id="info-precio">—</div>
+          </div>
+          <div class="col-6">
+            <div class="text-muted">Stock actual</div>
+            <div class="fw-semibold" id="info-stock">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const sel = document.getElementById('sel-repuesto');
+const aviso = document.getElementById('aviso-ya');
+const infoBox = document.getElementById('info-repuesto');
+const infoPrecio = document.getElementById('info-precio');
+const infoStock = document.getElementById('info-stock');
+
+sel.addEventListener('change', function () {
+  const opt = this.options[this.selectedIndex];
+  if (!opt || !opt.value) {
+    aviso.classList.add('d-none');
+    infoBox.classList.add('d-none');
+    return;
+  }
+  aviso.classList.toggle('d-none', opt.dataset.ya !== '1');
+  const precio = parseFloat(opt.dataset.precio || 0).toFixed(2);
+  const stock = opt.dataset.stock || '0';
+  infoPrecio.textContent = '$ ' + precio;
+  infoStock.textContent = stock + ' unid.';
+  infoBox.classList.remove('d-none');
+});
+</script>
+{% endblock %}

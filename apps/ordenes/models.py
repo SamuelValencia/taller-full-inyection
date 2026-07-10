@@ -114,6 +114,10 @@ class DetalleOrdenTrabajo(models.Model):
         Servicio, on_delete=models.PROTECT, null=True, blank=True,
         related_name="detalles_ordenes", verbose_name="Servicio del catalogo",
     )
+    repuesto_inventario = models.ForeignKey(
+        "inventario.Repuesto", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="detalles_ordenes", verbose_name="Repuesto del inventario",
+    )
     descripcion = models.CharField(max_length=200, verbose_name="Descripcion")
     cantidad = models.DecimalField(max_digits=8, decimal_places=2, default=1, verbose_name="Cantidad")
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio unitario ($)")

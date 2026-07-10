@@ -21,7 +21,8 @@
         <thead class="table-light">
           <tr>
             <th>Nombre</th>
-            <th>Descripcion</th>
+            <th>Categoría</th>
+            <th>Repuestos</th>
             <th>Estado</th>
             <th class="text-end">Acciones</th>
           </tr>
@@ -29,8 +30,24 @@
         <tbody>
           {% for servicio in servicios %}
           <tr>
-            <td class="fw-semibold">{{ servicio.nombre }}</td>
-            <td>{{ servicio.descripcion|default:"-"|truncatechars:90 }}</td>
+            <td>
+              <div class="fw-semibold">{{ servicio.nombre }}</div>
+              {% if servicio.descripcion %}<small class="text-muted">{{ servicio.descripcion|truncatechars:60 }}</small>{% endif %}
+            </td>
+            <td><span class="badge bg-warning text-dark">{{ servicio.get_categoria_display }}</span></td>
+            <td>
+              {% with cnt=servicio.repuestos_sugeridos.count %}
+              {% if cnt %}
+              <a href="{% url 'servicios:gestionar_repuestos' servicio.pk %}" class="badge bg-success text-decoration-none">
+                <i class="fas fa-boxes me-1"></i>{{ cnt }} repuesto{{ cnt|pluralize }}
+              </a>
+              {% else %}
+              <a href="{% url 'servicios:gestionar_repuestos' servicio.pk %}" class="badge bg-light text-muted border text-decoration-none">
+                <i class="fas fa-plus me-1"></i>Configurar
+              </a>
+              {% endif %}
+              {% endwith %}
+            </td>
             <td>
               {% if servicio.estado %}
               <span class="badge bg-success">Activo</span>
@@ -39,8 +56,9 @@
               {% endif %}
             </td>
             <td class="text-end">
-              <a href="{% url 'servicios:editar' servicio.pk %}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
-              <a href="{% url 'servicios:eliminar' servicio.pk %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-ban"></i></a>
+              <a href="{% url 'servicios:gestionar_repuestos' servicio.pk %}" class="btn btn-sm btn-outline-success" title="Repuestos sugeridos"><i class="fas fa-boxes"></i></a>
+              <a href="{% url 'servicios:editar' servicio.pk %}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+              <a href="{% url 'servicios:eliminar' servicio.pk %}" class="btn btn-sm btn-outline-danger" title="Desactivar"><i class="fas fa-ban"></i></a>
             </td>
           </tr>
           {% empty %}

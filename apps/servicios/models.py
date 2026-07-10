@@ -37,3 +37,30 @@ class Servicio(models.Model):
 
     def __str__(self):
         return f"{self.get_categoria_display()} - {self.nombre}"
+
+
+class ServicioRepuesto(models.Model):
+    """Catálogo de repuestos sugeridos para cada servicio."""
+
+    servicio = models.ForeignKey(
+        Servicio, on_delete=models.CASCADE,
+        related_name="repuestos_sugeridos", verbose_name="Servicio",
+    )
+    repuesto = models.ForeignKey(
+        "inventario.Repuesto", on_delete=models.CASCADE,
+        related_name="servicios_sugeridos", verbose_name="Repuesto",
+    )
+    cantidad_sugerida = models.DecimalField(
+        max_digits=8, decimal_places=2, default=1, verbose_name="Cantidad sugerida",
+    )
+    opcional = models.BooleanField(default=False, verbose_name="Es opcional")
+    nota = models.CharField(max_length=200, blank=True, verbose_name="Nota")
+
+    class Meta:
+        verbose_name = "Repuesto sugerido"
+        verbose_name_plural = "Repuestos sugeridos"
+        unique_together = ("servicio", "repuesto")
+        ordering = ["servicio", "opcional", "repuesto__nombre"]
+
+    def __str__(self):
+        return f"{self.servicio.nombre} → {self.repuesto.nombre} x{self.cantidad_sugerida}"

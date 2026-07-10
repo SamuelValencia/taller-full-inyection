@@ -301,16 +301,13 @@ body {
   width: min(95%, 1100px);
 }
 
-@media (min-width: 992px) {
-  .form-shell {
-    width: 90%;
-  }
-}
-
-@media (min-width: 1400px) {
-  .form-shell {
-    width: 85%;
-  }
+/* Contenedor proporcional para formularios:
+   - 1080px pantalla / ~860px área útil → ~774px de formulario (90%)
+   - 1440px pantalla / ~1220px área útil → ~960px (max)
+   - 1920px pantalla / ~1700px área útil → 960px (cap) */
+.form-container {
+  width: clamp(480px, 90%, 960px);
+  margin: 0 auto;
 }
 
 .card,

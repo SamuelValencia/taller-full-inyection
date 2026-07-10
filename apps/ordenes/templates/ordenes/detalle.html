@@ -270,6 +270,49 @@
       </div>
     </div>
   </div>
+
+  <!-- Panel de repuestos sugeridos (aparece al seleccionar un servicio con sugerencias) -->
+  <div class="col-12 d-none" id="panel-sugeridos">
+    <div class="card border-0 shadow-sm border-top border-success border-3">
+      <div class="card-header bg-success bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-semibold text-success">
+          <i class="fas fa-magic me-2"></i>Repuestos sugeridos para <span id="nombre-servicio-sugerido"></span>
+        </h6>
+        <button type="button" class="btn-close btn-sm" id="btn-cerrar-sugeridos" aria-label="Cerrar"></button>
+      </div>
+      <div class="card-body p-0">
+        <form method="post" action="{% url 'ordenes:agregar_repuestos_sugeridos' orden.pk %}" id="form-sugeridos">
+          {% csrf_token %}
+          <div class="table-responsive">
+            <table class="table table-sm mb-0" id="tabla-sugeridos">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:40px"><input type="checkbox" id="chk-todos" checked title="Seleccionar todos" class="form-check-input"></th>
+                  <th>Repuesto</th>
+                  <th class="text-center" style="width:110px">Cantidad</th>
+                  <th class="text-end" style="width:130px">Precio unit. ($)</th>
+                  <th class="text-end" style="width:120px">Subtotal</th>
+                  <th style="width:80px">Stock</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-sugeridos">
+                <!-- Filas generadas por JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer bg-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Desmarque los repuestos que no usará. Las cantidades y precios son editables.</small>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-cerrar-sugeridos2">Omitir sugerencias</button>
+              <button type="submit" class="btn btn-success btn-sm" id="btn-agregar-sugeridos">
+                <i class="fas fa-check me-1"></i>Agregar seleccionados
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
   {% endif %}
 
   {% if orden.observaciones %}
@@ -287,21 +330,135 @@
 
 {% block extra_js %}
 <script>
-const selOT = document.getElementById('sel-servicio-ot');
-const avisoOT = document.getElementById('aviso-dup-ot');
-const btnOT = document.getElementById('btn-agregar-ot');
+const selOT      = document.getElementById('sel-servicio-ot');
+const avisoOT    = document.getElementById('aviso-dup-ot');
+const btnOT      = document.getElementById('btn-agregar-ot');
+const panelSug   = document.getElementById('panel-sugeridos');
+const tbodySug   = document.getElementById('tbody-sugeridos');
+const chkTodos   = document.getElementById('chk-todos');
+const nombreSug  = document.getElementById('nombre-servicio-sugerido');
+
+function cerrarPanel() {
+  if (panelSug) panelSug.classList.add('d-none');
+  if (tbodySug) tbodySug.innerHTML = '';
+}
+
+function calcularSubtotal(fila) {
+  const cant  = parseFloat(fila.querySelector('.inp-cantidad').value) || 0;
+  const precio = parseFloat(fila.querySelector('.inp-precio').value) || 0;
+  fila.querySelector('.cel-subtotal').textContent = '$ ' + (cant * precio).toFixed(2);
+}
+
+function construirFila(r) {
+  const stockBajo = r.stock_actual < r.cantidad_sugerida;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="text-center">
+      <input type="checkbox" name="repuesto_id" value="${r.repuesto_id}"
+             class="form-check-input chk-rep" checked>
+    </td>
+    <td>
+      <div class="fw-semibold">${r.nombre}</div>
+      <small class="text-muted">${r.codigo}${r.marca ? ' · ' + r.marca : ''}
+        ${r.opcional ? '<span class="badge bg-info ms-1" style="font-size:.65rem">Opcional</span>' : ''}
+        ${r.nota ? '<span class="text-muted fst-italic ms-1">— ' + r.nota + '</span>' : ''}
+      </small>
+      <input type="hidden" name="descripcion" value="${r.nombre}">
+    </td>
+    <td>
+      <input type="number" name="cantidad" value="${r.cantidad_sugerida}"
+             min="0.01" step="0.01" class="form-control form-control-sm inp-cantidad">
+    </td>
+    <td>
+      <input type="number" name="precio_unitario" value="${r.precio_unitario.toFixed(2)}"
+             min="0" step="0.01" class="form-control form-control-sm inp-precio text-end">
+    </td>
+    <td class="text-end fw-semibold cel-subtotal">
+      $ ${(r.cantidad_sugerida * r.precio_unitario).toFixed(2)}
+    </td>
+    <td>
+      <span class="badge ${stockBajo ? 'bg-danger' : 'bg-success'}">${r.stock_actual}</span>
+    </td>`;
+
+  tr.querySelector('.inp-cantidad').addEventListener('input', () => calcularSubtotal(tr));
+  tr.querySelector('.inp-precio').addEventListener('input',   () => calcularSubtotal(tr));
+
+  // Al desmarcar, deshabilitar todos los inputs de esa fila (incluyendo hidden)
+  tr.querySelector('.chk-rep').addEventListener('change', function () {
+    tr.querySelectorAll('input:not(.chk-rep)').forEach(i => i.disabled = !this.checked);
+    calcularSubtotal(tr);
+    actualizarChkTodos();
+  });
+
+  return tr;
+}
+
+function actualizarChkTodos() {
+  if (!chkTodos) return;
+  const todos = document.querySelectorAll('.chk-rep');
+  const marcados = document.querySelectorAll('.chk-rep:checked');
+  chkTodos.indeterminate = marcados.length > 0 && marcados.length < todos.length;
+  chkTodos.checked = marcados.length === todos.length;
+}
+
+if (chkTodos) {
+  chkTodos.addEventListener('change', function () {
+    document.querySelectorAll('.chk-rep').forEach(chk => {
+      chk.checked = this.checked;
+      const fila = chk.closest('tr');
+      fila.querySelectorAll('input[type=number]').forEach(i => i.disabled = !this.checked);
+    });
+  });
+}
 
 if (selOT) {
-  selOT.addEventListener('change', function() {
+  selOT.addEventListener('change', function () {
     const opt = this.options[this.selectedIndex];
+
+    // Validar duplicado
     if (opt && opt.dataset.yaAgregado === '1') {
       avisoOT.classList.remove('d-none');
       btnOT.disabled = true;
-    } else {
-      avisoOT.classList.add('d-none');
-      btnOT.disabled = false;
+      cerrarPanel();
+      return;
     }
+    avisoOT.classList.add('d-none');
+    btnOT.disabled = false;
+
+    const servicioId = this.value;
+    if (!servicioId) { cerrarPanel(); return; }
+
+    // Consultar repuestos sugeridos vía AJAX
+    fetch(`/servicios/${servicioId}/repuestos.json`)
+      .then(r => r.json())
+      .then(data => {
+        tbodySug.innerHTML = '';
+        if (!data.repuestos || data.repuestos.length === 0) {
+          cerrarPanel();
+          return;
+        }
+        if (nombreSug) nombreSug.textContent = '"' + data.servicio + '"';
+        data.repuestos.forEach(r => tbodySug.appendChild(construirFila(r)));
+        panelSug.classList.remove('d-none');
+        panelSug.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (chkTodos) { chkTodos.checked = true; chkTodos.indeterminate = false; }
+      })
+      .catch(() => cerrarPanel());
   });
 }
+
+// Botones cerrar panel
+document.getElementById('btn-cerrar-sugeridos')?.addEventListener('click', cerrarPanel);
+document.getElementById('btn-cerrar-sugeridos2')?.addEventListener('click', cerrarPanel);
+
+// Al enviar form de sugeridos: excluir filas desmarcadas de los arrays paralelos
+document.getElementById('form-sugeridos')?.addEventListener('submit', function (e) {
+  const marcados = tbodySug.querySelectorAll('.chk-rep:checked');
+  if (marcados.length === 0) {
+    e.preventDefault();
+    cerrarPanel();
+    return;
+  }
+});
 </script>
 {% endblock %}
