@@ -3,7 +3,7 @@ services:
     name: fuel-injection
     runtime: python
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate --noinput
-    startCommand: gunicorn fuel_injection.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    startCommand: gunicorn fuel_injection.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: fuel_injection.settings.production
