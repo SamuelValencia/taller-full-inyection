@@ -1,5 +1,8 @@
 venv/
 .codex_deps/
+.codex/
+.claude/
+.agents/
 __pycache__/
 *.py[cod]
 *.sqlite3
