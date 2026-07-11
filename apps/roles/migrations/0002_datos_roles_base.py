@@ -5,8 +5,8 @@ MODULOS = [
     # (codigo, nombre, icono, url_name, orden)
     ("dashboard",     "Dashboard",           "fas fa-tachometer-alt",     "dashboard:index",        1),
     ("clientes",      "Clientes",            "fas fa-users",              "clientes:lista",         2),
-    ("vehiculos",     "Vehículos",           "fas fa-car",                "vehiculos:lista",        3),
-    ("ordenes",       "Órdenes de Trabajo",  "fas fa-clipboard-list",     "ordenes:lista",          4),
+    ("vehiculos",     "Vehiculos",           "fas fa-car",                "vehiculos:lista",        3),
+    ("ordenes",       "Ordenes de Trabajo",  "fas fa-clipboard-list",     "ordenes:lista",          4),
     ("cotizaciones",  "Cotizaciones",        "fas fa-file-invoice-dollar","cotizaciones:lista",     5),
     ("servicios",     "Servicios",           "fas fa-screwdriver-wrench", "servicios:lista",        6),
     ("inventario",    "Inventario",          "fas fa-boxes",              "inventario:index",       7),
@@ -33,7 +33,7 @@ ACCIONES = {
                       ("eliminar", "Eliminar"), ("registrar_historial", "Registrar historial")],
     "alertas":       [("ver", "Ver"), ("crear", "Crear registro"), ("editar", "Editar"), ("eliminar", "Eliminar"), ("configurar", "Configurar"), ("enviar", "Reenviar recordatorio")],
     "reportes":      [("ver", "Ver reportes"), ("exportar_clientes", "Exportar clientes"),
-                      ("exportar_vehiculos", "Exportar vehículos"), ("exportar_ordenes", "Exportar órdenes"),
+                      ("exportar_vehiculos", "Exportar vehiculos"), ("exportar_ordenes", "Exportar ordenes"),
                       ("exportar_inventario", "Exportar inventario"), ("ver_productividad", "Ver productividad")],
     "usuarios":      [("ver", "Ver"), ("crear", "Crear"), ("editar", "Editar"), ("eliminar", "Eliminar"), ("cambiar_password", "Restablecer contraseña")],
     "roles":         [("ver", "Ver"), ("crear", "Crear"), ("editar", "Editar"), ("eliminar", "Eliminar"), ("duplicar", "Duplicar")],
@@ -89,9 +89,9 @@ PERMISOS_MECANICO = {
 
 ROLES_BASE = [
     ("ADMIN",         "Administrador",  "Acceso total al sistema.", True,  PERMISOS_ADMIN),
-    ("GERENTE",       "Gerente",        "Visión gerencial: lectura total, exportaciones y aprobaciones.", True, PERMISOS_GERENTE),
-    ("RECEPCIONISTA", "Recepcionista",  "Operación de mostrador: clientes, vehículos, órdenes y cotizaciones.", True, PERMISOS_RECEPCIONISTA),
-    ("MECANICO",      "Mecánico",       "Ejecución técnica: órdenes asignadas y mantenimiento.", True, PERMISOS_MECANICO),
+    ("GERENTE",       "Gerente",        "Vision gerencial: lectura total, exportaciones y aprobaciones.", True, PERMISOS_GERENTE),
+    ("RECEPCIONISTA", "Recepcionista",  "Operacion de mostrador: clientes, vehiculos, ordenes y cotizaciones.", True, PERMISOS_RECEPCIONISTA),
+    ("MECANICO",      "Mecanico",       "Ejecucion tecnica: ordenes asignadas y mantenimiento.", True, PERMISOS_MECANICO),
 ]
 
 
