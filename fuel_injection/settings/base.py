@@ -110,17 +110,20 @@ LOGIN_URL = "authentication:login"
 LOGIN_REDIRECT_URL = "dashboard:index"
 LOGOUT_REDIRECT_URL = "authentication:login"
 
-# ── Email (SMTP — Mailtrap sandbox o Gmail) ───────────────────
+# ── Email (SMTP via Resend) ────────────────────────────────────
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
 )
-EMAIL_HOST = config("EMAIL_HOST", default="sandbox.smtp.mailtrap.io")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.resend.com")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="resend")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@fuelinjection.com")
+
+# Token de recuperación válido por 1 hora (3600 segundos)
+PASSWORD_RESET_TIMEOUT = 3600
 
 # WhatsApp Business / Twilio / Meta Cloud API
 WHATSAPP_PROVIDER = config("WHATSAPP_PROVIDER", default="")
