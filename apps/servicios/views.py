@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -44,6 +45,7 @@ def editar(request, pk):
     return render(request, "servicios/form.html", {"form": form, "titulo": "Editar servicio", "servicio": servicio})
 
 
+@login_required
 def catalogo_json(request):
     """Devuelve los servicios activos agrupados por categoría para el modal de selección."""
     q = request.GET.get("q", "")
@@ -67,6 +69,7 @@ def catalogo_json(request):
     return JsonResponse({"servicios": data, "categorias": categorias})
 
 
+@login_required
 def repuestos_sugeridos_json(request, pk):
     """Devuelve los repuestos sugeridos de un servicio (para AJAX en orden de trabajo)."""
     servicio = get_object_or_404(Servicio, pk=pk, estado=True)

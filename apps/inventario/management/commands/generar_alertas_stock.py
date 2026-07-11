@@ -21,7 +21,7 @@ class Command(BaseCommand):
         )
         
         # Obtener administradores para notificar
-        admins = Usuario.objects.filter(rol=Usuario.Rol.ADMINISTRADOR, is_active=True)
+        admins = Usuario.objects.filter(rol__codigo="ADMIN", is_active=True)
         
         alertas_creadas = 0
         

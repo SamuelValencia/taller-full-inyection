@@ -18,7 +18,8 @@ class Command(BaseCommand):
         user.email = options["email"]
         user.first_name = options["nombre"]
         user.last_name = options["apellido"]
-        user.rol = "ADMIN"
+        from apps.roles.models import Rol
+        user.rol = Rol.objects.get(codigo="ADMIN")
         user.is_staff = True
         user.is_superuser = True
         user.is_active = True

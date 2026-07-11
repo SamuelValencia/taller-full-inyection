@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "corsheaders",
     # Apps propias
     "apps.authentication",
+    "apps.roles",
     "apps.usuarios",
     "apps.clientes",
     "apps.vehiculos",
@@ -36,7 +37,6 @@ INSTALLED_APPS = [
     "apps.dashboard",
     "apps.reportes",
     "apps.inventario",
-    "apps.facturacion",
     "apps.servicios",
 ]
 

@@ -5,11 +5,13 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q, Sum, F
+
+from apps.decorators import admin_o_recepcionista_requerido, admin_o_mecanico_requerido, rol_autenticado_requerido
 from .models import CategoriaRepuesto, Repuesto, MovimientoInventario
 from .forms import CategoriaRepuestoForm, RepuestoForm, MovimientoInventarioForm
 
 
-@login_required
+@rol_autenticado_requerido
 def index(request):
     """Vista principal del inventario."""
     total_repuestos = Repuesto.objects.filter(activo=True).count()
@@ -17,9 +19,9 @@ def index(request):
     valor_inventario = Repuesto.objects.filter(activo=True).aggregate(
         total=Sum(F('stock_actual') * F('precio_compra'))
     )['total'] or 0
-    
+
     categorias = CategoriaRepuesto.objects.filter(activo=True)
-    
+
     context = {
         "total_repuestos": total_repuestos,
         "stock_bajo": stock_bajo,
@@ -29,14 +31,14 @@ def index(request):
     return render(request, "inventario/index.html", context)
 
 
-@login_required
+@rol_autenticado_requerido
 def lista_repuestos(request):
     """Lista de repuestos con búsqueda y filtros."""
     query = request.GET.get("q", "")
     categoria_id = request.GET.get("categoria", "")
-    
+
     repuestos = Repuesto.objects.filter(activo=True)
-    
+
     if query:
         repuestos = repuestos.filter(
             Q(codigo__icontains=query) |
@@ -44,12 +46,12 @@ def lista_repuestos(request):
             Q(marca__icontains=query) |
             Q(modelo__icontains=query)
         )
-    
+
     if categoria_id:
         repuestos = repuestos.filter(categoria_id=categoria_id)
-    
+
     categorias = CategoriaRepuesto.objects.filter(activo=True)
-    
+
     context = {
         "repuestos": repuestos,
         "categorias": categorias,
@@ -59,14 +61,13 @@ def lista_repuestos(request):
     return render(request, "inventario/lista_repuestos.html", context)
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def crear_repuesto(request):
     """Crear nuevo repuesto."""
     if request.method == "POST":
         form = RepuestoForm(request.POST)
         if form.is_valid():
             repuesto = form.save()
-            # Registrar movimiento inicial
             if repuesto.stock_actual > 0:
                 MovimientoInventario.objects.create(
                     repuesto=repuesto,
@@ -81,52 +82,47 @@ def crear_repuesto(request):
             return redirect("inventario:lista_repuestos")
     else:
         form = RepuestoForm()
-    
+
     context = {"form": form, "titulo": "Nuevo Repuesto"}
     return render(request, "inventario/form_repuesto.html", context)
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def editar_repuesto(request, pk):
     """Editar repuesto existente."""
     repuesto = get_object_or_404(Repuesto, pk=pk)
-    
+
     if request.method == "POST":
         form = RepuestoForm(request.POST, instance=repuesto)
         if form.is_valid():
             stock_anterior = repuesto.stock_actual
             form.save()
-            
-            # Si cambió el stock, registrar movimiento
             stock_nuevo = form.instance.stock_actual
             if stock_nuevo != stock_anterior:
-                diferencia = stock_nuevo - stock_anterior
-                tipo = MovimientoInventario.TipoMovimiento.AJUSTE
                 MovimientoInventario.objects.create(
                     repuesto=repuesto,
-                    tipo=tipo,
-                    cantidad=diferencia,
+                    tipo=MovimientoInventario.TipoMovimiento.AJUSTE,
+                    cantidad=stock_nuevo - stock_anterior,
                     stock_anterior=stock_anterior,
                     stock_nuevo=stock_nuevo,
                     motivo="Ajuste manual desde edición",
                     realizado_por=request.user
                 )
-            
             messages.success(request, "Repuesto actualizado exitosamente.")
             return redirect("inventario:lista_repuestos")
     else:
         form = RepuestoForm(instance=repuesto)
-    
+
     context = {"form": form, "titulo": "Editar Repuesto", "repuesto": repuesto}
     return render(request, "inventario/form_repuesto.html", context)
 
 
-@login_required
+@rol_autenticado_requerido
 def detalle_repuesto(request, pk):
     """Ver detalles de un repuesto."""
     repuesto = get_object_or_404(Repuesto, pk=pk)
     movimientos = repuesto.movimientos.all()[:20]
-    
+
     context = {
         "repuesto": repuesto,
         "movimientos": movimientos,
@@ -134,7 +130,7 @@ def detalle_repuesto(request, pk):
     return render(request, "inventario/detalle_repuesto.html", context)
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def lista_categorias(request):
     """Lista de categorías de repuestos."""
     categorias = CategoriaRepuesto.objects.all()
@@ -142,7 +138,7 @@ def lista_categorias(request):
     return render(request, "inventario/lista_categorias.html", context)
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def crear_categoria(request):
     """Crear nueva categoría."""
     if request.method == "POST":
@@ -153,16 +149,16 @@ def crear_categoria(request):
             return redirect("inventario:lista_categorias")
     else:
         form = CategoriaRepuestoForm()
-    
+
     context = {"form": form, "titulo": "Nueva Categoría"}
     return render(request, "inventario/form_categoria.html", context)
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def editar_categoria(request, pk):
     """Editar categoría existente."""
     categoria = get_object_or_404(CategoriaRepuesto, pk=pk)
-    
+
     if request.method == "POST":
         form = CategoriaRepuestoForm(request.POST, instance=categoria)
         if form.is_valid():
@@ -171,12 +167,12 @@ def editar_categoria(request, pk):
             return redirect("inventario:lista_categorias")
     else:
         form = CategoriaRepuestoForm(instance=categoria)
-    
+
     context = {"form": form, "titulo": "Editar Categoría", "categoria": categoria}
     return render(request, "inventario/form_categoria.html", context)
 
 
-@login_required
+@admin_o_mecanico_requerido
 def registrar_movimiento(request):
     """Registrar movimiento manual de inventario."""
     if request.method == "POST":
@@ -186,22 +182,20 @@ def registrar_movimiento(request):
             tipo = form.cleaned_data["tipo"]
             cantidad = form.cleaned_data["cantidad"]
             motivo = form.cleaned_data["motivo"]
-            
+
             stock_anterior = repuesto.stock_actual
-            
+
             if tipo == "SALIDA":
                 if cantidad > stock_anterior:
                     messages.error(request, "No hay suficiente stock para esta salida.")
                     return redirect("inventario:lista_repuestos")
                 cantidad = -cantidad
-            
+
             stock_nuevo = stock_anterior + cantidad
-            
-            # Actualizar stock del repuesto
+
             repuesto.stock_actual = stock_nuevo
             repuesto.save()
-            
-            # Registrar movimiento
+
             MovimientoInventario.objects.create(
                 repuesto=repuesto,
                 tipo=tipo,
@@ -211,11 +205,11 @@ def registrar_movimiento(request):
                 motivo=motivo or "Movimiento manual",
                 realizado_por=request.user
             )
-            
+
             messages.success(request, "Movimiento registrado exitosamente.")
             return redirect("inventario:lista_repuestos")
     else:
         form = MovimientoInventarioForm()
-    
+
     context = {"form": form, "titulo": "Registrar Movimiento"}
     return render(request, "inventario/form_movimiento.html", context)

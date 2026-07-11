@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 
+from apps.decorators import admin_o_recepcionista_requerido, rol_autenticado_requerido
 from .models import Alerta, ConfiguracionRecordatorio, RegistroMantenimiento, RecordatorioMantenimiento
 from .services import procesar_recordatorio
 
@@ -13,7 +14,7 @@ from .services import procesar_recordatorio
 # Módulo principal: Recordatorios de mantenimiento para clientes
 # ──────────────────────────────────────────────────────────────
 
-@login_required
+@admin_o_recepcionista_requerido
 def lista(request):
     """Vista principal: tabla de todos los recordatorios de mantenimiento."""
     from apps.clientes.models import Cliente
@@ -59,7 +60,7 @@ def lista(request):
     })
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def crear_registro(request):
     """Crea manualmente un registro de mantenimiento para un vehículo."""
     from apps.vehiculos.models import Vehiculo
@@ -104,7 +105,7 @@ def crear_registro(request):
     })
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def detalle_registro(request, pk):
     """Detalle de un registro de mantenimiento con historial de recordatorios."""
     registro = get_object_or_404(
@@ -119,7 +120,7 @@ def detalle_registro(request, pk):
     })
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def reenviar_recordatorio(request, pk):
     """Reenvía manualmente un recordatorio ya enviado o con error."""
     if request.method != "POST":
@@ -159,7 +160,7 @@ def reenviar_recordatorio(request, pk):
     return redirect("alertas:detalle_registro", pk=pk)
 
 
-@login_required
+@admin_o_recepcionista_requerido
 def configuracion(request):
     """Vista de configuración del sistema de recordatorios."""
     config = ConfiguracionRecordatorio.obtener()
@@ -178,7 +179,7 @@ def configuracion(request):
 # Alertas internas (compatibilidad)
 # ──────────────────────────────────────────────────────────────
 
-@login_required
+@rol_autenticado_requerido
 def marcar_leida(request, pk):
     alerta = get_object_or_404(Alerta, pk=pk, destinatario=request.user)
     alerta.leida = True
@@ -186,7 +187,7 @@ def marcar_leida(request, pk):
     return redirect("alertas:lista")
 
 
-@login_required
+@rol_autenticado_requerido
 def marcar_todas_leidas(request):
     if request.method == "POST":
         Alerta.objects.filter(destinatario=request.user, leida=False).update(leida=True)

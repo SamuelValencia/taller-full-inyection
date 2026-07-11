@@ -1,10 +1,17 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
+from apps.roles.models import Rol
 from .models import Usuario
 
 
 class UsuarioCrearForm(UserCreationForm):
+    rol = forms.ModelChoiceField(
+        queryset=Rol.objects.filter(activo=True),
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Rol",
+    )
+
     class Meta:
         model = Usuario
         fields = ["username", "first_name", "last_name", "email", "rol", "telefono", "cedula", "especialidad"]
@@ -13,7 +20,6 @@ class UsuarioCrearForm(UserCreationForm):
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "rol": forms.Select(attrs={"class": "form-select"}),
             "telefono": forms.TextInput(attrs={"class": "form-control"}),
             "cedula": forms.TextInput(attrs={"class": "form-control"}),
             "especialidad": forms.TextInput(attrs={"class": "form-control"}),
@@ -26,6 +32,12 @@ class UsuarioCrearForm(UserCreationForm):
 
 
 class UsuarioEditarForm(forms.ModelForm):
+    rol = forms.ModelChoiceField(
+        queryset=Rol.objects.filter(activo=True),
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Rol",
+    )
+
     class Meta:
         model = Usuario
         fields = ["first_name", "last_name", "email", "rol", "telefono", "cedula", "especialidad", "activo"]
@@ -33,7 +45,6 @@ class UsuarioEditarForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "rol": forms.Select(attrs={"class": "form-select"}),
             "telefono": forms.TextInput(attrs={"class": "form-control"}),
             "cedula": forms.TextInput(attrs={"class": "form-control"}),
             "especialidad": forms.TextInput(attrs={"class": "form-control"}),

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Roles{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h1 class="h3 fw-bold mb-0"><i class="fas fa-shield-halved me-2 text-primary"></i>Gestión de Roles</h1>
+    <small class="text-muted">{{ roles|length }} rol(es) configurado(s)</small>
+  </div>
+  <a href="{% url 'roles:crear' %}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus me-1"></i>Nuevo Rol
+  </a>
+</div>
+
+<div class="row g-3">
+  {% for rol in roles %}
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm h-100 {% if not rol.activo %}opacity-50{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <h5 class="mb-0 fw-bold">{{ rol.nombre }}</h5>
+              {% if rol.es_sistema %}
+                <span class="badge bg-secondary" title="No se puede eliminar"><i class="fas fa-lock me-1"></i>Sistema</span>
+              {% endif %}
+              {% if not rol.activo %}
+                <span class="badge bg-warning text-dark">Inactivo</span>
+              {% endif %}
+            </div>
+            <code class="text-muted small">{{ rol.codigo }}</code>
+          </div>
+          <span class="badge bg-primary rounded-pill fs-6">
+            {{ rol.usuarios.count }} <small class="fw-normal">usuario(s)</small>
+          </span>
+        </div>
+
+        {% if rol.descripcion %}
+          <p class="text-muted small mb-3">{{ rol.descripcion }}</p>
+        {% endif %}
+
+        <div class="mb-3">
+          <div class="small text-muted fw-semibold mb-1">Permisos ({{ rol.acciones.count }} acciones)</div>
+          <div class="d-flex flex-wrap gap-1">
+            {% for accion in rol.acciones.all|slice:":10" %}
+              <span class="badge bg-light text-dark border small">{{ accion.modulo.nombre }} · {{ accion.nombre }}</span>
+            {% endfor %}
+            {% if rol.acciones.count > 10 %}
+              <span class="badge bg-light text-muted border small">+{{ rol.acciones.count|add:"-10" }} más</span>
+            {% endif %}
+            {% if rol.acciones.count == 0 %}
+              <span class="text-muted small fst-italic">Sin permisos configurados</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <a href="{% url 'roles:editar' rol.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-pen me-1"></i>Editar
+          </a>
+          <a href="{% url 'roles:asignar_usuarios' rol.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-users me-1"></i>Usuarios
+          </a>
+          <form method="post" action="{% url 'roles:duplicar' rol.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-info">
+              <i class="fas fa-copy me-1"></i>Duplicar
+            </button>
+          </form>
+          {% if not rol.es_sistema %}
+          <form method="post" action="{% url 'roles:toggle_activo' rol.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm {% if rol.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+              <i class="fas fa-{% if rol.activo %}pause{% else %}play{% endif %} me-1"></i>
+              {% if rol.activo %}Desactivar{% else %}Activar{% endif %}
+            </button>
+          </form>
+          {% if not rol.usuarios.exists %}
+          <a href="{% url 'roles:eliminar' rol.pk %}" class="btn btn-sm btn-outline-danger">
+            <i class="fas fa-trash me-1"></i>Eliminar
+          </a>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-info">No hay roles configurados.</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

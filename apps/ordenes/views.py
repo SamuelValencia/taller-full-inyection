@@ -40,7 +40,7 @@ def crear(request):
     cotizacion = None
 
     # Enforcement del flujo: recepcionistas deben venir desde una cotización aprobada
-    if user.rol == "RECEPCIONISTA" and not cotizacion_pk:
+    if user.rol_codigo == "RECEPCIONISTA" and not cotizacion_pk:
         from apps.cotizaciones.models import Cotizacion
         cotizaciones_aprobadas = Cotizacion.objects.filter(
             estado="APROBADA", orden_generada__isnull=True

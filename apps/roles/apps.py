@@ -1,6 +1,7 @@
 from django.apps import AppConfig
 
 
-class FacturacionConfig(AppConfig):
+class RolesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'facturacion'
+    name = 'apps.roles'
+    verbose_name = "Roles y Permisos"

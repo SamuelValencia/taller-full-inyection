@@ -1,25 +1,20 @@
-﻿from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+﻿from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
-from apps.mixins import AdminRequeridoMixin
+
+from apps.decorators import admin_requerido
 from .models import Usuario
 from .forms import UsuarioCrearForm, UsuarioEditarForm, PerfilForm
 
 
-@login_required
+@admin_requerido
 def lista(request):
-    if not request.user.es_admin and not request.user.is_superuser:
-        from django.core.exceptions import PermissionDenied
-        raise PermissionDenied
     usuarios = Usuario.objects.filter(activo=True).order_by("rol", "last_name")
     return render(request, "usuarios/lista.html", {"usuarios": usuarios})
 
 
-@login_required
+@admin_requerido
 def crear(request):
-    if not request.user.es_admin and not request.user.is_superuser:
-        from django.core.exceptions import PermissionDenied
-        raise PermissionDenied
     if request.method == "POST":
         form = UsuarioCrearForm(request.POST, request.FILES)
         if form.is_valid():
@@ -36,11 +31,8 @@ def crear(request):
     return render(request, "usuarios/form.html", {"form": form, "titulo": "Nuevo usuario"})
 
 
-@login_required
+@admin_requerido
 def editar(request, pk):
-    if not request.user.es_admin and not request.user.is_superuser:
-        from django.core.exceptions import PermissionDenied
-        raise PermissionDenied
     usuario = get_object_or_404(Usuario, pk=pk)
     if request.method == "POST":
         form = UsuarioEditarForm(request.POST, request.FILES, instance=usuario)

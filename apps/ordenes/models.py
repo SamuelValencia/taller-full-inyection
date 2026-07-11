@@ -48,7 +48,7 @@ class OrdenTrabajo(models.Model):
     tecnico_asignado = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="ordenes_trabajo_asignadas", verbose_name="Tecnico asignado",
-        limit_choices_to={"rol": "MECANICO"},
+        limit_choices_to={"rol__codigo": "MECANICO"},
     )
     recepcionista = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

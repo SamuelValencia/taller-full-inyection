@@ -9,7 +9,7 @@ class RolRequeridoMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if self.roles_permitidos and request.user.rol not in self.roles_permitidos:
+        if self.roles_permitidos and request.user.rol_codigo not in self.roles_permitidos:
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 

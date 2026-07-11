@@ -16,14 +16,13 @@ urlpatterns = [
     path("alertas/", include("apps.alertas.urls", namespace="alertas")),
     path("reportes/", include("apps.reportes.urls", namespace="reportes")),
     path("inventario/", include("apps.inventario.urls", namespace="inventario")),
-    path("facturacion/", include("apps.facturacion.urls", namespace="facturacion")),
+    path("roles/", include("apps.roles.urls", namespace="roles")),
     path("servicios/", include("apps.servicios.urls", namespace="servicios")),
     # API REST
     path("api/v1/clientes/", include("apps.clientes.api_urls")),
     path("api/v1/vehiculos/", include("apps.vehiculos.api_urls")),
     path("api/v1/ordenes/", include("apps.ordenes.api_urls")),
     path("api/v1/inventario/", include("apps.inventario.api_urls")),
-    path("api/v1/facturacion/", include("apps.facturacion.api_urls")),
 ]
 
 if settings.DEBUG:

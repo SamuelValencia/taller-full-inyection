@@ -13,7 +13,6 @@ class Migration(migrations.Migration):
         ('mantenimiento', '0005_alter_historialmantenimiento_orden_and_more'),
         ('alertas', '0005_alter_alerta_orden_alter_alerta_tipo_and_more'),
         ('clientes', '0002_remove_cliente_telefono_alternativo'),
-        ('facturacion', '0003_alter_facturainterna_orden'),
         ('ordenes', '0004_detalleordentrabajo_ordentrabajo_and_more'),
         ('inventario', '0003_movimientoinventario_orden_trabajo_and_more'),
         ('vehiculos', '0002_remove_vehiculo_foto_restringir_tipos'),

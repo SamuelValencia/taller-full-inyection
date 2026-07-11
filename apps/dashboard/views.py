@@ -1,16 +1,16 @@
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import Count, F, Sum
 from datetime import timedelta
 
+from apps.decorators import rol_autenticado_requerido
 from apps.clientes.models import Cliente
 from apps.vehiculos.models import Vehiculo
 from apps.ordenes.models import OrdenTrabajo
 from apps.alertas.models import Alerta
 
 
-@login_required
+@rol_autenticado_requerido
 def index(request):
     hoy = timezone.now().date()
     hace_30 = hoy - timedelta(days=30)
@@ -60,6 +60,8 @@ def index(request):
     estados_labels = ["Recibida", "En proceso", "Finalizada", "Entregada"]
     estados_datos = [ordenes_pendientes, ordenes_en_proceso, ordenes_finalizadas, ordenes_entregadas]
 
+    puede_ver_financiero = request.user.rol_codigo in ('ADMIN', 'GERENTE') or request.user.is_superuser
+
     context = {
         "total_clientes": total_clientes,
         "total_vehiculos": total_vehiculos,
@@ -67,8 +69,9 @@ def index(request):
         "ordenes_en_proceso": ordenes_en_proceso,
         "ordenes_finalizadas": ordenes_finalizadas,
         "ordenes_entregadas": ordenes_entregadas,
-        "ingresos_mes": ingresos_mes,
-        "ingresos_anio": ingresos_anio,
+        "ingresos_mes": ingresos_mes if puede_ver_financiero else None,
+        "ingresos_anio": ingresos_anio if puede_ver_financiero else None,
+        "puede_ver_financiero": puede_ver_financiero,
         "servicios_top": servicios_top,
         "ordenes_recientes": ordenes_recientes,
         "alertas_urgentes": alertas_urgentes,
