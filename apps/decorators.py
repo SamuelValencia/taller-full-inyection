@@ -42,16 +42,16 @@ def admin_requerido(view_func):
 
 def admin_o_recepcionista_requerido(view_func):
     """
-    Decorador que requiere rol de administrador o recepcionista.
+    Decorador que requiere rol de administrador, gerente o recepcionista.
     """
-    return rol_requerido('ADMIN', 'RECEPCIONISTA')(view_func)
+    return rol_requerido('ADMIN', 'GERENTE', 'RECEPCIONISTA')(view_func)
 
 
 def admin_o_mecanico_requerido(view_func):
     """
-    Decorador que requiere rol de administrador o mecánico.
+    Decorador que requiere rol de administrador, gerente o mecánico.
     """
-    return rol_requerido('ADMIN', 'MECANICO')(view_func)
+    return rol_requerido('ADMIN', 'GERENTE', 'MECANICO')(view_func)
 
 
 def rol_autenticado_requerido(view_func):

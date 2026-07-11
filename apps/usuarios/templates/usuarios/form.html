@@ -54,12 +54,18 @@
                 <label class="form-check-label" for="{{ form.activo.id_for_label }}">Usuario activo</label>
               </div>
             </div>
+            {% if form.password1 %}
             <div class="col-12 col-md-6">
-              <label class="form-label fw-semibold">Contraseña{% if not form.instance.pk %} <span class="text-danger">*</span>{% endif %}</label>
-              {{ form.password }}
-              {% if form.password.errors %}<div class="text-danger small">{{ form.password.errors }}</div>{% endif %}
-              {% if form.instance.pk %}<small class="text-muted">Dejar en blanco para mantener la actual</small>{% endif %}
+              <label class="form-label fw-semibold">Contraseña <span class="text-danger">*</span></label>
+              {{ form.password1 }}
+              {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors }}</div>{% endif %}
             </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Confirmar contraseña <span class="text-danger">*</span></label>
+              {{ form.password2 }}
+              {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors }}</div>{% endif %}
+            </div>
+            {% endif %}
           </div>
           <hr>
           <div class="d-flex flex-column flex-md-row gap-2">

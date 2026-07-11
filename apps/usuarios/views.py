@@ -26,6 +26,11 @@ def crear(request):
             form.save()
             messages.success(request, "Usuario creado correctamente.")
             return redirect("usuarios:lista")
+        else:
+            for field, errors in form.errors.items():
+                label = form.fields[field].label if field in form.fields else field
+                for error in errors:
+                    messages.error(request, f"{label}: {error}")
     else:
         form = UsuarioCrearForm()
     return render(request, "usuarios/form.html", {"form": form, "titulo": "Nuevo usuario"})
@@ -43,6 +48,11 @@ def editar(request, pk):
             form.save()
             messages.success(request, "Usuario actualizado.")
             return redirect("usuarios:lista")
+        else:
+            for field, errors in form.errors.items():
+                label = form.fields[field].label if field in form.fields else field
+                for error in errors:
+                    messages.error(request, f"{label}: {error}")
     else:
         form = UsuarioEditarForm(instance=usuario)
     return render(request, "usuarios/form.html", {"form": form, "titulo": "Editar usuario", "usuario": usuario})
