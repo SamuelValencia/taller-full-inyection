@@ -1,10 +1,16 @@
-{% extends "base.html" %}{% block title %}Mantenimiento preventivo{% endblock %}{% block content %}
+{% extends "base.html" %}{% load permisos_tags %}{% block title %}Mantenimiento preventivo{% endblock %}{% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <h1 class="h3 fw-bold mb-0"><i class="fas fa-tools me-2 text-warning"></i>Mantenimiento preventivo</h1>
   <div class="d-flex gap-2">
+    {% if request.user|puede:"mantenimiento.crear" %}
     <a href="{% url 'mantenimiento:crear' %}" class="btn btn-primary fw-semibold"><i class="fas fa-plus me-1"></i>Nuevo programa</a>
+    {% endif %}
+    {% if request.user|puede:"mantenimiento.registrar_historial" %}
     <a href="{% url 'mantenimiento:registrar_historial' %}" class="btn btn-primary"><i class="fas fa-history me-1"></i>Registrar mantenimiento</a>
+    {% endif %}
+    {% if request.user|puede:"mantenimiento.crear" %}
     <a href="{% url 'mantenimiento:tipos' %}" class="btn btn-secondary"><i class="fas fa-cog me-1"></i>Tipos</a>
+    {% endif %}
   </div>
 </div>
 <div class="card border-0 shadow-sm"><div class="card-body p-0">
@@ -24,8 +30,12 @@
     {% else %}<span class="badge bg-success"><i class="fas fa-check me-1"></i>Al día</span>{% endif %}
   </td>
   <td class="text-center">
+    {% if request.user|puede:"mantenimiento.editar" %}
     <a href="{% url 'mantenimiento:editar' p.pk %}" class="btn btn-sm btn-warning me-1"><i class="fas fa-edit"></i></a>
+    {% endif %}
+    {% if request.user|puede:"mantenimiento.registrar_historial" %}
     <a href="{% url 'mantenimiento:registrar_historial' %}?vehiculo={{ p.vehiculo.pk }}&tipo={{ p.tipo_servicio.pk }}" class="btn btn-sm btn-primary" title="Registrar servicio"><i class="fas fa-wrench"></i></a>
+    {% endif %}
   </td>
 </tr>
 {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">Sin programas de mantenimiento</td></tr>{% endfor %}

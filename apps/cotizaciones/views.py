@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from ..decorators import admin_o_recepcionista_requerido
+from ..decorators import admin_o_recepcionista_requerido, permiso_requerido
 from .models import Cotizacion, DetalleCotizacion
 from .forms import CotizacionForm
 
@@ -42,7 +42,7 @@ def crear(request):
     return render(request, "cotizaciones/form.html", {"form": form, "titulo": "Nueva cotización"})
 
 
-@admin_o_recepcionista_requerido
+@permiso_requerido('cotizaciones', 'editar')
 def editar(request, pk):
     cot = get_object_or_404(Cotizacion, pk=pk)
     if request.method == "POST":
@@ -209,7 +209,7 @@ def editar_detalle(request, pk, det_pk):
     return JsonResponse({"ok": True, "subtotal": float(det.subtotal)})
 
 
-@admin_o_recepcionista_requerido
+@permiso_requerido('cotizaciones', 'convertir_orden')
 def convertir_orden(request, pk):
     from apps.ordenes.models import OrdenTrabajo, DetalleOrdenTrabajo
     cot = get_object_or_404(Cotizacion, pk=pk, estado="APROBADA")

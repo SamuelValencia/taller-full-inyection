@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.utils import timezone
 
-from ..decorators import admin_o_recepcionista_requerido, admin_o_mecanico_requerido, rol_autenticado_requerido
+from ..decorators import admin_o_recepcionista_requerido, admin_o_mecanico_requerido, rol_autenticado_requerido, permiso_requerido
 from .models import OrdenTrabajo, DetalleOrdenTrabajo
 from .forms import OrdenTrabajoForm
 from apps.vehiculos.models import Vehiculo
@@ -110,7 +110,7 @@ def crear(request):
     })
 
 
-@admin_o_recepcionista_requerido
+@permiso_requerido('ordenes', 'editar')
 def editar(request, pk):
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
     if request.method == "POST":
