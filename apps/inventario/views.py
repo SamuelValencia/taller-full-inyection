@@ -12,6 +12,28 @@ from .forms import CategoriaRepuestoForm, RepuestoForm, MovimientoInventarioForm
 
 
 @rol_autenticado_requerido
+def buscar_repuestos(request):
+    """API JSON para Select2: busca repuestos activos del inventario."""
+    from django.http import JsonResponse
+    q = request.GET.get("q", "").strip()
+    qs = Repuesto.objects.filter(activo=True, stock_actual__gt=0).order_by("nombre")
+    if q:
+        qs = qs.filter(Q(nombre__icontains=q) | Q(codigo__icontains=q) | Q(marca__icontains=q))
+    resultados = [
+        {
+            "id": r.pk,
+            "text": f"{r.nombre} [{r.codigo}]",
+            "nombre": r.nombre,
+            "precio": float(r.precio_venta or 0),
+            "stock": r.stock_actual,
+            "codigo": r.codigo,
+        }
+        for r in qs[:30]
+    ]
+    return JsonResponse({"results": resultados})
+
+
+@rol_autenticado_requerido
 def index(request):
     """Vista principal del inventario."""
     total_repuestos = Repuesto.objects.filter(activo=True).count()

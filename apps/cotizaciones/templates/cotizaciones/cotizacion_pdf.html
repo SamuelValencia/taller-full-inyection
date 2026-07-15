@@ -8,7 +8,7 @@
   body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #222; }
 
   /* HEADER */
-  .header { width: 100%; border-bottom: 3px solid #1a56db; padding-bottom: 8px; margin-bottom: 10px; }
+  .header { width: 100%; padding-bottom: 8px; margin-bottom: 10px; }
   .header-table { width: 100%; }
   .taller-nombre { font-size: 16pt; font-weight: bold; color: #1a56db; }
   .taller-sub { font-size: 8pt; color: #555; margin-top: 2px; }
@@ -22,7 +22,7 @@
 
   /* SECCIONES */
   .seccion-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #1a56db;
-    border-bottom: 1px solid #1a56db; padding-bottom: 2px; margin-bottom: 5px; margin-top: 10px; }
+    margin-bottom: 4px; margin-top: 10px; }
 
   .info-grid { width: 100%; }
   .info-grid td { padding: 2px 4px; font-size: 8.5pt; vertical-align: top; }
@@ -43,12 +43,12 @@
   .badge-repuesto { background: #fef3c7; color: #92400e; }
 
   /* TOTALES */
-  .totales-table { width: 200px; float: right; margin-top: 8px; font-size: 9pt; border-collapse: collapse; }
+  .totales-wrap { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .totales-table { width: 100%; font-size: 9pt; border-collapse: collapse; }
   .totales-table td { padding: 3px 6px; }
   .totales-table tr.total-final { background: #1a56db; color: white; font-weight: bold; font-size: 10pt; }
   .totales-table td.label { color: #555; }
   .totales-table td.valor { text-align: right; }
-  .clearfix::after { content: ""; display: table; clear: both; }
 
   /* FIRMAS */
   .firmas-section { margin-top: 30px; }
@@ -107,8 +107,7 @@
 <table class="two-col">
   <tr>
     <td style="width:50%">
-      <div class="seccion-titulo">Datos del Cliente</div>
-      <table class="info-grid">
+      <div class="seccion-titulo">Datos del Cliente</div>      <table class="info-grid">
         <tr><td class="info-label">Nombre:</td><td>{{ cotizacion.cliente.nombres }} {{ cotizacion.cliente.apellidos }}</td></tr>
         <tr><td class="info-label">{{ cotizacion.cliente.get_tipo_documento_display }}:</td><td>{{ cotizacion.cliente.numero_documento }}</td></tr>
         <tr><td class="info-label">Teléfono:</td><td>{{ cotizacion.cliente.telefono }}</td></tr>
@@ -117,10 +116,9 @@
       </table>
     </td>
     <td style="width:50%">
-      <div class="seccion-titulo">Datos del Vehículo</div>
-      <table class="info-grid">
+      <div class="seccion-titulo">Datos del Vehículo</div>      <table class="info-grid">
         <tr><td class="info-label">Placa:</td><td><strong>{{ cotizacion.vehiculo.placa }}</strong></td></tr>
-        <tr><td class="info-label">Marca / Modelo:</td><td>{{ cotizacion.vehiculo.marca }} {{ cotizacion.vehiculo.modelo }}</td></tr>
+        <tr><td class="info-label">Marca / Modelo:</td><td>{{ cotizacion.vehiculo.get_marca_display }} {{ cotizacion.vehiculo.modelo }}</td></tr>
         <tr><td class="info-label">Año / Color:</td><td>{{ cotizacion.vehiculo.anio }} / {{ cotizacion.vehiculo.color|default:"—" }}</td></tr>
         <tr><td class="info-label">Kilometraje:</td><td>{{ cotizacion.vehiculo.kilometraje_actual|default:0 }} km</td></tr>
         {% if cotizacion.vehiculo.numero_motor %}<tr><td class="info-label">N° Motor:</td><td>{{ cotizacion.vehiculo.numero_motor }}</td></tr>{% endif %}
@@ -131,13 +129,11 @@
 </table>
 
 {% if cotizacion.descripcion %}
-<div class="seccion-titulo">Descripción del Trabajo</div>
-<div class="obs-box">{{ cotizacion.descripcion }}</div>
+<div class="seccion-titulo">Descripción del Trabajo</div><div class="obs-box">{{ cotizacion.descripcion }}</div>
 {% endif %}
 
 <!-- TABLA DE SERVICIOS -->
-<div class="seccion-titulo">Detalle de Servicios y Materiales</div>
-<table class="tabla-servicios">
+<div class="seccion-titulo">Detalle de Servicios y Materiales</div><table class="tabla-servicios">
   <thead>
     <tr>
       <th style="width:70px">Tipo</th>
@@ -167,39 +163,41 @@
 </table>
 
 <!-- TOTALES -->
-<div class="clearfix">
-  <table class="totales-table">
-    <tr>
-      <td class="label">Subtotal:</td>
-      <td class="valor">$ {{ cotizacion.subtotal|floatformat:2 }}</td>
-    </tr>
-    {% if cotizacion.descuento %}
-    <tr>
-      <td class="label">Descuento:</td>
-      <td class="valor" style="color:#b91c1c">- $ {{ cotizacion.descuento|floatformat:2 }}</td>
-    </tr>
-    {% endif %}
-    {% if cotizacion.aplica_iva %}
-    <tr>
-      <td class="label">Base imponible:</td>
-      <td class="valor">$ {{ cotizacion.base_con_descuento|floatformat:2 }}</td>
-    </tr>
-    <tr>
-      <td class="label">IVA (15%):</td>
-      <td class="valor">$ {{ cotizacion.iva_monto|floatformat:2 }}</td>
-    </tr>
-    {% endif %}
-    <tr class="total-final">
-      <td class="label" style="color:white">TOTAL:</td>
-      <td class="valor">$ {{ cotizacion.total|floatformat:2 }}</td>
-    </tr>
-  </table>
-</div>
+<table class="totales-wrap">
+  <tr>
+    <td style="width:55%">&nbsp;</td>
+    <td style="width:45%">
+      <table class="totales-table">
+        <tr>
+          <td class="label">Subtotal:</td>
+          <td class="valor">$ {{ cotizacion.subtotal|floatformat:2 }}</td>
+        </tr>
+        {% if cotizacion.descuento %}
+        <tr>
+          <td class="label">Descuento:</td>
+          <td class="valor" style="color:#b91c1c">- $ {{ cotizacion.descuento|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="label">Base imponible:</td>
+          <td class="valor">$ {{ cotizacion.base_con_descuento|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td class="label">IVA ({{ cotizacion.porcentaje_iva }}%):</td>
+          <td class="valor">$ {{ cotizacion.iva_monto|floatformat:2 }}</td>
+        </tr>
+        <tr class="total-final">
+          <td class="label" style="color:white">TOTAL:</td>
+          <td class="valor">$ {{ cotizacion.total|floatformat:2 }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
 <!-- OBSERVACIONES -->
 {% if cotizacion.observaciones %}
-<div class="seccion-titulo" style="margin-top:20px">Observaciones</div>
-<div class="obs-box">{{ cotizacion.observaciones }}</div>
+<div class="seccion-titulo" style="margin-top:20px">Observaciones</div><div class="obs-box">{{ cotizacion.observaciones }}</div>
 {% endif %}
 
 <!-- FIRMAS -->

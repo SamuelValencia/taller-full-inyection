@@ -6,6 +6,42 @@ from django.db import models
 from apps.clientes.models import Cliente
 
 
+MARCAS_VEHICULO = [
+    ("CHEVROLET",    "Chevrolet"),
+    ("TOYOTA",       "Toyota"),
+    ("HYUNDAI",      "Hyundai"),
+    ("KIA",          "Kia"),
+    ("SUZUKI",       "Suzuki"),
+    ("MAZDA",        "Mazda"),
+    ("NISSAN",       "Nissan"),
+    ("FORD",         "Ford"),
+    ("VOLKSWAGEN",   "Volkswagen"),
+    ("HONDA",        "Honda"),
+    ("MITSUBISHI",   "Mitsubishi"),
+    ("RENAULT",      "Renault"),
+    ("JEEP",         "Jeep"),
+    ("DODGE",        "Dodge"),
+    ("RAM",          "RAM"),
+    ("GREAT_WALL",   "Great Wall"),
+    ("CHERY",        "Chery"),
+    ("BYD",          "BYD"),
+    ("JAC",          "JAC"),
+    ("DFSK",         "DFSK / Dongfeng"),
+    ("HINO",         "Hino"),
+    ("FUSO",         "Fuso"),
+    ("ISUZU",        "Isuzu"),
+    ("MERCEDES",     "Mercedes-Benz"),
+    ("BMW",          "BMW"),
+    ("AUDI",         "Audi"),
+    ("SUBARU",       "Subaru"),
+    ("LAND_ROVER",   "Land Rover"),
+    ("PEUGEOT",      "Peugeot"),
+    ("CITROEN",      "Citroën"),
+    ("VOLVO",        "Volvo"),
+    ("OTRA",         "Otra"),
+]
+
+
 class Vehiculo(models.Model):
 
     class TipoCombustible(models.TextChoices):
@@ -31,7 +67,7 @@ class Vehiculo(models.Model):
         unique=True,
         verbose_name="Placa",
     )
-    marca = models.CharField(max_length=60, verbose_name="Marca")
+    marca = models.CharField(max_length=60, choices=MARCAS_VEHICULO, verbose_name="Marca")
     modelo = models.CharField(max_length=80, verbose_name="Modelo")
     anio = models.PositiveSmallIntegerField(verbose_name="Año")
     color = models.CharField(max_length=40, blank=True, verbose_name="Color")

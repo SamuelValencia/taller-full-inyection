@@ -32,7 +32,8 @@ class Cotizacion(models.Model):
     fecha_aprobacion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de aprobacion")
     fecha_validez = models.DateField(null=True, blank=True, verbose_name="Valida hasta")
     descuento = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Descuento ($)")
-    aplica_iva = models.BooleanField(default=False, verbose_name="Aplica IVA (15%)")
+    aplica_iva = models.BooleanField(default=False, verbose_name="Aplica IVA")
+    porcentaje_iva = models.PositiveSmallIntegerField(default=15, verbose_name="Porcentaje IVA (%)")
     orden_generada = models.OneToOneField(
         "ordenes.OrdenTrabajo", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="cotizacion_origen", verbose_name="Orden de trabajo generada",
@@ -56,9 +57,7 @@ class Cotizacion(models.Model):
 
     @property
     def iva_monto(self):
-        if self.aplica_iva:
-            return self.base_con_descuento * Decimal("0.15")
-        return Decimal("0")
+        return self.base_con_descuento * Decimal(self.porcentaje_iva) / Decimal("100")
 
     @property
     def total(self):

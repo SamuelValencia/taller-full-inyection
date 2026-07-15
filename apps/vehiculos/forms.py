@@ -11,9 +11,9 @@ class VehiculoForm(forms.ModelForm):
                   "tipo_combustible", "numero_vin", "numero_motor", "kilometraje_actual",
                   "cilindraje", "transmision", "observaciones"]
         widgets = {
-            "cliente": forms.Select(attrs={"class": "form-select"}),
+            "cliente": forms.Select(attrs={"class": "form-select select2-enable", "data-placeholder": "Buscar cliente…"}),
             "placa": forms.TextInput(attrs={"class": "form-control text-uppercase", "placeholder": "ABC-1234", "maxlength": 10}),
-            "marca": forms.TextInput(attrs={"class": "form-control", "placeholder": "Toyota", "minlength": 2}),
+            "marca": forms.Select(attrs={"class": "form-select"}),
             "modelo": forms.TextInput(attrs={"class": "form-control", "placeholder": "Corolla", "minlength": 2}),
             "anio": forms.NumberInput(attrs={"class": "form-control", "min": 1950, "max": 2030}),
             "color": forms.TextInput(attrs={"class": "form-control", "minlength": 2}),
@@ -32,8 +32,8 @@ class VehiculoForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             if field.required:
                 field.widget.attrs['class'] += ' is-required'
-            # Solo aplicar validacion de letras a campos de texto, no SELECT ni NUMBER
-            if field_name in ['marca', 'modelo', 'color']:
+            # Solo aplicar validacion de letras a campos de texto libre, no SELECT ni NUMBER
+            if field_name in ['modelo', 'color']:
                 field.validators.append(
                     RegexValidator(
                         regex=r'^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-]+$',

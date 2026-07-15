@@ -205,13 +205,4 @@
   </div>
 </div>
 
-<!-- Instrucción de automatización -->
-<div class="alert alert-info border-0 mt-4 d-flex gap-3 align-items-start">
-  <i class="fas fa-robot fa-lg mt-1"></i>
-  <div>
-    <strong>Automatización:</strong> Para enviar recordatorios diariamente de forma automática, configure un cron job o tarea programada que ejecute:<br>
-    <code class="d-inline-block mt-1 bg-white border rounded px-2 py-1">python manage.py enviar_recordatorios</code>
-    <br><small class="text-muted mt-1 d-block">Ejemplo cron: <code>0 8 * * * /ruta/venv/bin/python manage.py enviar_recordatorios --settings=fuel_injection.settings.development</code></small>
-  </div>
-</div>
 {% endblock %}

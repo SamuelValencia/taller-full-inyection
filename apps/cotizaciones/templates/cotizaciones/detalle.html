@@ -11,6 +11,9 @@
     <a href="{% url 'cotizaciones:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
     <a href="{% url 'cotizaciones:editar' cotizacion.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-edit me-1"></i>Editar</a>
     <a href="{% url 'cotizaciones:pdf' cotizacion.pk %}" class="btn btn-outline-danger btn-sm" target="_blank"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEnviarCot">
+      <i class="fas fa-paper-plane me-1"></i>Enviar
+    </button>
     {% if cotizacion.estado == 'APROBADA' and not cotizacion.orden_generada %}
     <form method="post" action="{% url 'cotizaciones:convertir_orden' cotizacion.pk %}" class="d-inline">
       {% csrf_token %}
@@ -112,22 +115,29 @@
             </thead>
             <tbody>
               {% for det in detalles %}
-              <tr class="fila-detalle" data-subtotal="{{ det.subtotal|floatformat:2 }}">
+              <tr class="fila-detalle" data-det-id="{{ det.pk }}" data-subtotal="{{ det.subtotal|floatformat:2 }}">
                 <td>
                   {% if det.tipo == 'SERVICIO' %}<span class="badge bg-primary">Servicio</span>
                   {% else %}<span class="badge bg-warning text-dark">Repuesto</span>{% endif %}
                 </td>
                 <td>{{ det.descripcion }}</td>
-                <td class="text-center">{{ det.cantidad|floatformat:0 }}</td>
-                <td class="text-end">$ {{ det.precio_unitario|floatformat:2 }}</td>
-                <td class="text-end fw-semibold">$ {{ det.subtotal|floatformat:2 }}</td>
-                <td>
+                <td class="text-center celda-cantidad">
+                  <span class="val-cantidad">{{ det.cantidad|floatformat:0 }}</span>
+                  <input type="number" class="form-control form-control-sm inp-cantidad d-none" value="{{ det.cantidad|floatformat:2 }}" min="0.01" step="0.01" style="width:70px">
+                </td>
+                <td class="text-end celda-precio">
+                  <span class="val-precio">$ {{ det.precio_unitario|floatformat:2 }}</span>
+                  <input type="number" class="form-control form-control-sm inp-precio d-none" value="{{ det.precio_unitario|floatformat:2 }}" min="0" step="0.01" style="width:90px;margin-left:auto">
+                </td>
+                <td class="text-end fw-semibold celda-subtotal">$ {{ det.subtotal|floatformat:2 }}</td>
+                <td class="text-nowrap">
                   {% if cotizacion.estado == 'BORRADOR' or cotizacion.estado == 'ENVIADA' %}
-                  <form method="post" action="{% url 'cotizaciones:eliminar_detalle' cotizacion.pk det.pk %}">
+                  <button class="btn btn-link btn-sm text-primary p-0 btn-editar-det me-1" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                  <button class="btn btn-link btn-sm text-success p-0 btn-guardar-det d-none me-1" title="Guardar"><i class="fas fa-check"></i></button>
+                  <button class="btn btn-link btn-sm text-secondary p-0 btn-cancelar-det d-none me-1" title="Cancelar"><i class="fas fa-times"></i></button>
+                  <form method="post" action="{% url 'cotizaciones:eliminar_detalle' cotizacion.pk det.pk %}" class="d-inline">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('¿Eliminar este ítem?')" title="Eliminar">
-                      <i class="fas fa-trash-alt"></i>
-                    </button>
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0 btn-eliminar-det" onclick="return confirm('¿Eliminar este ítem?')" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
                   </form>
                   {% endif %}
                 </td>
@@ -142,17 +152,20 @@
       <div class="card-footer bg-white">
         <div class="row justify-content-end">
           <div class="col-sm-5 col-md-4">
-            <table class="table table-sm mb-0">
-              <tr><td class="text-muted">Subtotal</td><td class="text-end fw-semibold">$ {{ cotizacion.subtotal|floatformat:2 }}</td></tr>
+            <table class="table table-sm mb-0" id="tabla-totales-cot"
+              data-aplica-iva="{{ cotizacion.aplica_iva|yesno:'1,0' }}"
+              data-porcentaje-iva="{{ cotizacion.porcentaje_iva }}"
+              data-descuento="{{ cotizacion.descuento|floatformat:2 }}">
+              <tr><td class="text-muted">Subtotal</td><td class="text-end fw-semibold" id="val-subtotal-cot">$ {{ cotizacion.subtotal|floatformat:2 }}</td></tr>
               <tr><td class="text-muted">Descuento</td><td class="text-end text-danger">- $ {{ cotizacion.descuento|floatformat:2 }}</td></tr>
-              {% if cotizacion.aplica_iva %}
-              <tr><td class="text-muted">IVA (15%)</td><td class="text-end">$ {{ cotizacion.iva_monto|floatformat:2 }}</td></tr>
-              {% endif %}
-              <tr class="fw-bold table-light"><td>TOTAL</td><td class="text-end fs-5 text-success">$ {{ cotizacion.total|floatformat:2 }}</td></tr>
+              <tr>
+                <td class="text-muted">IVA ({{ cotizacion.porcentaje_iva }}%)</td>
+                <td class="text-end" id="val-iva-cot">$ {{ cotizacion.iva_monto|floatformat:2 }}</td>
+              </tr>
+              <tr class="fw-bold table-light"><td>TOTAL</td><td class="text-end fs-5 text-success" id="val-total-cot">$ {{ cotizacion.total|floatformat:2 }}</td></tr>
             </table>
             <div class="mt-1 small text-muted">
-              IVA: {% if cotizacion.aplica_iva %}<span class="badge bg-success">Aplica 15%</span>{% else %}<span class="badge bg-secondary">No aplica</span>{% endif %}
-              · Validez: {{ cotizacion.fecha_validez|date:"d/m/Y"|default:"—" }}
+              Validez: {{ cotizacion.fecha_validez|date:"d/m/Y"|default:"—" }}
             </div>
           </div>
         </div>
@@ -212,20 +225,23 @@
         <h6 class="mb-0 fw-semibold text-warning-emphasis"><i class="fas fa-cog me-2"></i>Agregar Repuesto / Material</h6>
       </div>
       <div class="card-body">
-        <form method="post" action="{% url 'cotizaciones:agregar_repuesto' cotizacion.pk %}">
+        <form method="post" action="{% url 'cotizaciones:agregar_repuesto' cotizacion.pk %}" id="form-repuesto-cot">
           {% csrf_token %}
           <div class="mb-2">
-            <label class="form-label form-label-sm fw-semibold">Descripción <span class="text-danger">*</span></label>
-            <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Ej: Filtro de aceite Bosch" maxlength="200" required>
+            <label class="form-label form-label-sm fw-semibold">Repuesto <span class="text-danger">*</span></label>
+            <select id="sel-inventario-cot" class="form-select form-select-sm">
+              <option value="">— Escriba para buscar —</option>
+            </select>
+            <input type="hidden" name="descripcion" id="inp-desc-repuesto-cot">
           </div>
           <div class="row g-2 mb-3">
             <div class="col-5">
               <label class="form-label form-label-sm fw-semibold">Cantidad <span class="text-danger">*</span></label>
-              <input type="number" name="cantidad" class="form-control form-control-sm" value="1" min="1" step="1" required>
+              <input type="number" name="cantidad" id="inp-cant-repuesto-cot" class="form-control form-control-sm" value="1" min="1" step="1" required>
             </div>
             <div class="col-7">
               <label class="form-label form-label-sm fw-semibold">Precio unit. ($) <span class="text-danger">*</span></label>
-              <input type="number" name="precio_unitario" class="form-control form-control-sm" value="0.00" min="0" step="0.01" placeholder="0.00" required>
+              <input type="number" name="precio_unitario" id="inp-precio-repuesto-cot" class="form-control form-control-sm" value="0.00" min="0" step="0.01" placeholder="0.00" required>
             </div>
           </div>
           <button type="submit" class="btn btn-warning btn-sm w-100">
@@ -261,21 +277,164 @@
 
 {% block extra_js %}
 <script>
+// ── SELECTOR INVENTARIO REPUESTOS (COTIZACIÓN) ────────────────
+const BUSCAR_URL_COT = "{% url 'inventario:buscar_repuestos' %}";
+const $selInvCot = $('#sel-inventario-cot');
+if ($selInvCot.length) {
+  $selInvCot.select2({
+    theme: 'bootstrap-5',
+    width: '100%',
+    placeholder: 'Escriba para buscar en inventario…',
+    allowClear: true,
+    minimumInputLength: 1,
+    ajax: {
+      url: BUSCAR_URL_COT,
+      dataType: 'json',
+      delay: 250,
+      data: params => ({ q: params.term }),
+      processResults: data => ({ results: data.results }),
+      cache: true,
+    },
+    language: { inputTooShort: () => 'Escriba al menos 1 carácter…', noResults: () => 'Sin resultados' }
+  });
+  $selInvCot.on('select2:select', function (e) {
+    const d = e.params.data;
+    document.getElementById('inp-desc-repuesto-cot').value   = d.nombre;
+    document.getElementById('inp-precio-repuesto-cot').value = d.precio.toFixed(2);
+  });
+  $selInvCot.on('select2:clear', function () {
+    document.getElementById('inp-desc-repuesto-cot').value   = '';
+    document.getElementById('inp-precio-repuesto-cot').value = '0.00';
+  });
+}
+
+// ── Validación duplicados al agregar servicio ──────────────────
 const selServicio = document.getElementById('sel-servicio');
 const avisoDuplicado = document.getElementById('aviso-duplicado-s');
 const btnAgregar = document.getElementById('btn-agregar-servicio');
-
 if (selServicio) {
   selServicio.addEventListener('change', function() {
     const opt = this.options[this.selectedIndex];
-    if (opt && opt.dataset.yaAgregado === '1') {
-      avisoDuplicado.classList.remove('d-none');
-      btnAgregar.disabled = true;
-    } else {
-      avisoDuplicado.classList.add('d-none');
-      btnAgregar.disabled = false;
-    }
+    const dup = opt && opt.dataset.yaAgregado === '1';
+    if (avisoDuplicado) avisoDuplicado.classList.toggle('d-none', !dup);
+    if (btnAgregar) btnAgregar.disabled = dup;
   });
 }
+
+// ── Edición inline de ítems + recálculo de totales ───────────
+(function () {
+  const CSRF = '{{ csrf_token }}';
+  const tbl  = document.getElementById('tabla-totales-cot');
+  if (!tbl) return;
+
+  const pct  = parseFloat(tbl.dataset.porcentajeIva) || 15;
+  const dcto = parseFloat(tbl.dataset.descuento) || 0;
+
+  function recalcTotales() {
+    let subtotal = 0;
+    document.querySelectorAll('.fila-detalle').forEach(tr => {
+      subtotal += parseFloat(tr.dataset.subtotal) || 0;
+    });
+    const base  = subtotal - dcto;
+    const iva   = base * pct / 100;
+    const total = base + iva;
+    document.getElementById('val-subtotal-cot').textContent = '$ ' + subtotal.toFixed(2);
+    document.getElementById('val-iva-cot').textContent      = '$ ' + iva.toFixed(2);
+    document.getElementById('val-total-cot').textContent    = '$ ' + total.toFixed(2);
+  }
+
+  document.querySelectorAll('.fila-detalle').forEach(tr => {
+    const btnEdit    = tr.querySelector('.btn-editar-det');
+    const btnGuardar = tr.querySelector('.btn-guardar-det');
+    const btnCancel  = tr.querySelector('.btn-cancelar-det');
+    const btnElim    = tr.querySelector('.btn-eliminar-det');
+    if (!btnEdit) return;
+
+    const spanCant  = tr.querySelector('.val-cantidad');
+    const inpCant   = tr.querySelector('.inp-cantidad');
+    const spanPrecio = tr.querySelector('.val-precio');
+    const inpPrecio = tr.querySelector('.inp-precio');
+    const celdaSub  = tr.querySelector('.celda-subtotal');
+
+    let cantOrig, precioOrig;
+
+    btnEdit.addEventListener('click', () => {
+      cantOrig   = inpCant.value;
+      precioOrig = inpPrecio.value;
+      spanCant.classList.add('d-none');   inpCant.classList.remove('d-none');
+      spanPrecio.classList.add('d-none'); inpPrecio.classList.remove('d-none');
+      btnEdit.classList.add('d-none');    btnGuardar.classList.remove('d-none');
+      btnCancel.classList.remove('d-none');
+      if (btnElim) btnElim.classList.add('d-none');
+    });
+
+    btnCancel.addEventListener('click', () => {
+      inpCant.value   = cantOrig;
+      inpPrecio.value = precioOrig;
+      spanCant.classList.remove('d-none');   inpCant.classList.add('d-none');
+      spanPrecio.classList.remove('d-none'); inpPrecio.classList.add('d-none');
+      btnEdit.classList.remove('d-none');    btnGuardar.classList.add('d-none');
+      btnCancel.classList.add('d-none');
+      if (btnElim) btnElim.classList.remove('d-none');
+    });
+
+    btnGuardar.addEventListener('click', () => {
+      const detId   = tr.dataset.detId;
+      const cant    = parseFloat(inpCant.value);
+      const precio  = parseFloat(inpPrecio.value);
+      if (isNaN(cant) || cant <= 0 || isNaN(precio) || precio < 0) {
+        alert('Cantidad debe ser > 0 y precio ≥ 0'); return;
+      }
+      fetch("{% url 'cotizaciones:editar_detalle' cotizacion.pk 0 %}".replace('/0/', '/' + detId + '/'), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({cantidad: cant, precio_unitario: precio})
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          spanCant.textContent   = cant % 1 === 0 ? cant.toFixed(0) : cant.toFixed(2);
+          spanPrecio.textContent = '$ ' + precio.toFixed(2);
+          celdaSub.textContent   = '$ ' + d.subtotal;
+          tr.dataset.subtotal    = d.subtotal;
+          btnCancel.click();
+          recalcTotales();
+        } else { alert(d.error || 'Error al guardar'); }
+      })
+      .catch(() => alert('Error de red'));
+    });
+  });
+})();
 </script>
+
+<!-- Modal Enviar Cotización -->
+<div class="modal fade" id="modalEnviarCot" tabindex="-1" aria-labelledby="modalEnviarCotLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="post" action="{% url 'cotizaciones:enviar_notificacion' cotizacion.pk %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEnviarCotLabel"><i class="fas fa-paper-plane me-2 text-primary"></i>Enviar cotización</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-3">
+            Se enviará la proforma <strong>{{ cotizacion.numero_cotizacion }}</strong>
+            a <strong>{{ cotizacion.cliente.nombres }} {{ cotizacion.cliente.apellidos }}</strong>.
+          </p>
+          <label class="form-label fw-semibold">Canal de envío</label>
+          <select name="canal" class="form-select form-select-sm">
+            <option value="EMAIL">📧 Email ({{ cotizacion.cliente.email|default:"sin email" }})</option>
+            <option value="WHATSAPP">📱 WhatsApp ({{ cotizacion.cliente.telefono|default:"sin teléfono" }})</option>
+            <option value="AMBOS">📧📱 Email y WhatsApp</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane me-1"></i>Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

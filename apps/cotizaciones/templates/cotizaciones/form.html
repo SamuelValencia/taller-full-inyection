@@ -73,15 +73,11 @@
               <div class="form-text">Descuento aplicado sobre el total de la cotización.</div>
             </div>
 
-            <!-- Aplica IVA -->
+            <!-- IVA siempre al 15% -->
             <div class="col-12 col-md-6">
-              <div class="form-check form-switch mt-2">
-                {{ form.aplica_iva }}
-                <label class="form-check-label fw-semibold" for="{{ form.aplica_iva.id_for_label }}">
-                  Aplica IVA (15%)
-                </label>
+              <div class="alert alert-info py-1 px-2 mb-0 small">
+                <i class="fas fa-info-circle me-1"></i>IVA del <strong>15%</strong> se aplica automáticamente sobre el total.
               </div>
-              <div class="form-text">Marcar si la cotización debe incluir IVA del 15%.</div>
             </div>
 
             <!-- Descripción -->
@@ -225,53 +221,50 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const clienteEl = document.getElementById("id_cliente");
-  const vehiculoEl = document.getElementById("id_vehiculo");
-  const vehiculoHint = document.getElementById("vehiculo-hint");
-  if (!clienteEl || !vehiculoEl) return;
+$(document).ready(function () {
+  const $clienteEl = $('#id_cliente');
+  const $vehiculoEl = $('#id_vehiculo');
+  const $vehiculoHint = $('#vehiculo-hint');
 
   function cargarVehiculos(clienteId, vehiculoSeleccionado) {
     if (!clienteId) {
-      vehiculoEl.innerHTML = '<option value="">— Seleccione un cliente primero —</option>';
-      if (vehiculoHint) vehiculoHint.textContent = "Primero seleccione un cliente.";
+      $vehiculoEl.html('<option value="">— Seleccione un cliente primero —</option>').trigger('change');
+      if ($vehiculoHint.length) $vehiculoHint.text("Primero seleccione un cliente.");
       return;
     }
-    vehiculoEl.innerHTML = '<option value="">Cargando vehículos...</option>';
+    $vehiculoEl.html('<option value="">Cargando vehículos...</option>').trigger('change');
     fetch("{% url 'ordenes:vehiculos_por_cliente' %}?cliente=" + encodeURIComponent(clienteId))
       .then(r => r.json())
       .then(data => {
-        vehiculoEl.innerHTML = '<option value="">— Seleccione un vehículo —</option>';
+        $vehiculoEl.html('<option value="">— Seleccione un vehículo —</option>');
         if (data.results && data.results.length > 0) {
           data.results.forEach(item => {
-            const o = document.createElement("option");
-            o.value = item.id;
-            o.textContent = item.text;
-            if (vehiculoSeleccionado && item.id == vehiculoSeleccionado) o.selected = true;
-            vehiculoEl.appendChild(o);
+            const selected = vehiculoSeleccionado && item.id == vehiculoSeleccionado;
+            $vehiculoEl.append(new Option(item.text, item.id, selected, selected));
           });
-          if (vehiculoHint) vehiculoHint.textContent = data.results.length + " vehículo(s) disponible(s).";
+          if ($vehiculoHint.length) $vehiculoHint.text(data.results.length + " vehículo(s) disponible(s).");
         } else {
-          vehiculoEl.innerHTML = '<option value="">— Sin vehículos registrados —</option>';
-          if (vehiculoHint) vehiculoHint.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Este cliente no tiene vehículos. <a href="{% url "vehiculos:crear" %}">Registrar vehículo</a></span>';
+          $vehiculoEl.html('<option value="">— Sin vehículos registrados —</option>');
+          if ($vehiculoHint.length) $vehiculoHint.html('<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Este cliente no tiene vehículos. <a href="{% url "vehiculos:crear" %}">Registrar vehículo</a></span>');
         }
+        $vehiculoEl.trigger('change');
       })
       .catch(() => {
-        vehiculoEl.innerHTML = '<option value="">Error al cargar vehículos</option>';
+        $vehiculoEl.html('<option value="">Error al cargar vehículos</option>').trigger('change');
       });
   }
 
-  // Al cambiar cliente
-  clienteEl.addEventListener("change", function () {
-    cargarVehiculos(this.value, null);
+  $clienteEl.on('select2:select select2:clear change', function () {
+    cargarVehiculos($clienteEl.val(), null);
   });
 
-  // Al cargar la página: si hay cliente preseleccionado (edición), cargar vehículos
-  const clienteInicial = clienteEl.value;
-  const vehiculoInicial = vehiculoEl.value;
+  // Al cargar en edición: restaurar cliente y vehículo preseleccionados
+  const clienteInicial = $clienteEl.val();
+  const vehiculoInicial = $vehiculoEl.val();
   if (clienteInicial) {
     cargarVehiculos(clienteInicial, vehiculoInicial);
   }
+
 });
 </script>
 {% endblock %}

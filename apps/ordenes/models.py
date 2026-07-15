@@ -62,7 +62,7 @@ class OrdenTrabajo(models.Model):
     kilometraje_ingreso = models.PositiveIntegerField(default=0, verbose_name="Kilometraje al ingreso")
     descripcion_problema = models.TextField(verbose_name="Sintomas reportados por el cliente")
     diagnostico = models.TextField(blank=True, verbose_name="Diagnostico tecnico")
-    autorizacion_cliente = models.TextField(blank=True, verbose_name="Autorizacion del cliente")
+    autorizacion_cliente = models.BooleanField(default=False, verbose_name="Cliente autorizo los trabajos")
     observaciones = models.TextField(blank=True, verbose_name="Observaciones")
     fecha_ingreso = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de ingreso")
     fecha_estimada_entrega = models.DateField(null=True, blank=True, verbose_name="Fecha estimada de entrega")
@@ -71,7 +71,32 @@ class OrdenTrabajo(models.Model):
     costo_mano_obra = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Costo mano de obra ($)")
     costo_repuestos = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Costo repuestos ($)")
     descuento = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Descuento ($)")
+    aplica_iva = models.BooleanField(default=False, verbose_name="Aplica IVA")
+    porcentaje_iva = models.PositiveSmallIntegerField(default=15, verbose_name="Porcentaje IVA (%)")
     fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    # ── Recordatorio de mantenimiento preventivo ──────────────────────────────
+    requiere_recordatorio = models.BooleanField(
+        default=False,
+        verbose_name="Requiere recordatorio de mantenimiento",
+        help_text="Activar para programar un recordatorio automatico al cliente.",
+    )
+    intervalo_dias_recordatorio = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Intervalo en dias para el proximo mantenimiento",
+        help_text="Ej: 90 = cada 3 meses. Dejar en blanco si no aplica.",
+    )
+    intervalo_km_recordatorio = models.PositiveIntegerField(
+        null=True, blank=True,
+        verbose_name="Intervalo en km para el proximo mantenimiento",
+        help_text="Ej: 5000. Dejar en blanco si no aplica.",
+    )
+    canal_recordatorio = models.CharField(
+        max_length=10,
+        choices=[("EMAIL", "Correo electronico"), ("WHATSAPP", "WhatsApp"), ("AMBOS", "Correo y WhatsApp")],
+        default="EMAIL",
+        verbose_name="Canal de envio del recordatorio",
+    )
 
     class Meta:
         verbose_name = "Orden de trabajo"
@@ -89,8 +114,21 @@ class OrdenTrabajo(models.Model):
         return f"{self.numero_orden} — {self.vehiculo.placa} ({self.get_estado_display()})"
 
     @property
+    def subtotal_bruto(self):
+        return self.costo_mano_obra + self.costo_repuestos
+
+    @property
+    def base_con_descuento(self):
+        return self.subtotal_bruto - self.descuento
+
+    @property
+    def iva_monto(self):
+        from decimal import Decimal
+        return self.base_con_descuento * Decimal(self.porcentaje_iva) / Decimal("100")
+
+    @property
     def costo_total(self):
-        return self.costo_mano_obra + self.costo_repuestos - self.descuento
+        return self.base_con_descuento + self.iva_monto
 
     def save(self, *args, **kwargs):
         if not self.numero_orden:

@@ -133,6 +133,9 @@ WHATSAPP_FROM_NUMBER = config("WHATSAPP_FROM_NUMBER", default="")
 WHATSAPP_META_TOKEN = config("WHATSAPP_META_TOKEN", default="")
 WHATSAPP_META_PHONE_NUMBER_ID = config("WHATSAPP_META_PHONE_NUMBER_ID", default="")
 
+# URL pública del sitio (sin slash final) — necesaria para generar enlaces en WhatsApp
+SITE_URL = config("SITE_URL", default="http://localhost:8000")
+
 # Info del taller (disponible en templates via settings)
 TALLER_NOMBRE = config("TALLER_NOMBRE", default="Fuel Injection")
 TALLER_TELEFONO = config("TALLER_TELEFONO", default="")

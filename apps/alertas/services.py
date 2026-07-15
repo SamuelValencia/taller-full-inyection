@@ -176,8 +176,27 @@ def _texto_recordatorio_whatsapp(ctx: dict) -> str:
     return texto
 
 
-def _enviar_twilio(numero: str, mensaje: str) -> tuple[bool, str]:
-    """Envío vía Twilio WhatsApp API."""
+def _normalizar_numero(numero: str, codigo_pais: str = "+593") -> str:
+    """
+    Convierte un número local al formato E.164 requerido por Twilio.
+    Ejemplo: '0988794071' → '+593988794071'
+    """
+    numero = numero.strip().replace(" ", "").replace("-", "")
+    if numero.startswith("+"):
+        return numero
+    if numero.startswith("00"):
+        return "+" + numero[2:]
+    # Número local ecuatoriano: comienza con 0
+    if numero.startswith("0") and len(numero) == 10:
+        return codigo_pais + numero[1:]
+    # Si ya tiene el código sin el +
+    if numero.startswith("593"):
+        return "+" + numero
+    return codigo_pais + numero
+
+
+def _enviar_twilio(numero: str, mensaje: str, media_url: str = "") -> tuple[bool, str]:
+    """Envío vía Twilio WhatsApp API. Si media_url está presente, adjunta el archivo."""
     try:
         from twilio.rest import Client
         account_sid = getattr(settings, "WHATSAPP_ACCOUNT_SID", "")
@@ -187,12 +206,18 @@ def _enviar_twilio(numero: str, mensaje: str) -> tuple[bool, str]:
         if not all([account_sid, auth_token, from_number]):
             return False, "Credenciales de Twilio incompletas en .env"
 
-        client = Client(account_sid, auth_token)
-        client.messages.create(
+        numero_e164 = _normalizar_numero(numero)
+
+        params = dict(
             body=mensaje,
             from_=f"whatsapp:{from_number}",
-            to=f"whatsapp:{numero}",
+            to=f"whatsapp:{numero_e164}",
         )
+        if media_url:
+            params["media_url"] = [media_url]
+
+        client = Client(account_sid, auth_token)
+        client.messages.create(**params)
         return True, ""
     except ImportError:
         return False, "Instalar twilio: pip install twilio"

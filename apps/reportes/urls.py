@@ -6,6 +6,8 @@ app_name = "reportes"
 urlpatterns = [
     path("", views.index, name="index"),
     path("orden/<int:pk>/pdf/", views.orden_pdf, name="orden_pdf"),
+    path("orden/<int:pk>/enviar/", views.enviar_orden_notificacion, name="enviar_orden"),
+    path("pdf-publico/<str:token>/", views.pdf_publico, name="pdf_publico"),
     path("vehiculo/<int:pk>/historial/pdf/", views.historial_vehiculo_pdf, name="historial_vehiculo_pdf"),
     # Exportación Excel
     path("excel/clientes/", views.exportar_clientes_excel, name="exportar_clientes_excel"),

@@ -188,6 +188,28 @@ def eliminar_detalle(request, pk, det_pk):
 
 
 @admin_o_recepcionista_requerido
+def editar_detalle(request, pk, det_pk):
+    """AJAX: edita cantidad y precio_unitario de un DetalleCotizacion."""
+    import json
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Método no permitido."}, status=405)
+    from django.http import JsonResponse as _JR
+    det = get_object_or_404(DetalleCotizacion, pk=det_pk, cotizacion__pk=pk)
+    try:
+        data = json.loads(request.body)
+        cantidad = Decimal(str(data["cantidad"]))
+        precio = Decimal(str(data["precio_unitario"]))
+        if cantidad <= 0 or precio < 0:
+            raise ValueError
+    except (KeyError, ValueError, Exception):
+        return JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
+    det.cantidad = cantidad
+    det.precio_unitario = precio
+    det.save(update_fields=["cantidad", "precio_unitario"])
+    return JsonResponse({"ok": True, "subtotal": float(det.subtotal)})
+
+
+@admin_o_recepcionista_requerido
 def convertir_orden(request, pk):
     from apps.ordenes.models import OrdenTrabajo, DetalleOrdenTrabajo
     cot = get_object_or_404(Cotizacion, pk=pk, estado="APROBADA")
@@ -218,6 +240,92 @@ def convertir_orden(request, pk):
         messages.success(request, f"Orden de Trabajo {orden.numero_orden} generada desde la cotización.")
         return redirect("ordenes:detalle", pk=orden.pk)
     messages.info(request, "Esta cotización ya tiene una Orden de Trabajo generada.")
+    return redirect("cotizaciones:detalle", pk=pk)
+
+
+@admin_o_recepcionista_requerido
+def enviar_notificacion(request, pk):
+    """Envía la cotización al cliente por email y/o WhatsApp con el PDF adjunto."""
+    if request.method != "POST":
+        return redirect("cotizaciones:detalle", pk=pk)
+
+    cot = get_object_or_404(Cotizacion.objects.select_related("cliente"), pk=pk)
+    canal = request.POST.get("canal", "EMAIL")
+    cliente = cot.cliente
+
+    errores = []
+    exitos = []
+
+    if canal in ("EMAIL", "AMBOS"):
+        email = getattr(cliente, "email", "") or ""
+        if email:
+            try:
+                from django.core.mail import EmailMessage
+                from django.template.loader import get_template
+                from django.conf import settings
+                from xhtml2pdf import pisa
+                from io import BytesIO
+
+                detalles = cot.detalles.select_related("servicio").all()
+                tpl = get_template("cotizaciones/cotizacion_pdf.html")
+                html = tpl.render({
+                    "cotizacion": cot, "detalles": detalles,
+                    "taller_nombre": getattr(settings, "TALLER_NOMBRE", "Fuel Injection"),
+                    "taller_telefono": getattr(settings, "TALLER_TELEFONO", ""),
+                    "taller_direccion": getattr(settings, "TALLER_DIRECCION", ""),
+                })
+                buf = BytesIO()
+                pisa.pisaDocument(BytesIO(html.encode("utf-8")), buf)
+
+                msg = EmailMessage(
+                    subject=f"Proforma {cot.numero_cotizacion} — Fuel Injection",
+                    body=(
+                        f"Estimado/a {cliente.nombres} {cliente.apellidos},\n\n"
+                        f"Adjuntamos la proforma {cot.numero_cotizacion} solicitada.\n\n"
+                        "Quedo a su disposición para cualquier consulta.\n\n"
+                        f"{getattr(settings, 'TALLER_NOMBRE', 'Fuel Injection')}"
+                    ),
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                    to=[email],
+                )
+                msg.attach(f"proforma-{cot.numero_cotizacion}.pdf", buf.getvalue(), "application/pdf")
+                msg.send()
+                exitos.append("Email enviado correctamente.")
+            except Exception as exc:
+                errores.append(f"Email: {exc}")
+        else:
+            errores.append("El cliente no tiene email registrado.")
+
+    if canal in ("WHATSAPP", "AMBOS"):
+        telefono = getattr(cliente, "telefono", "") or ""
+        if telefono:
+            try:
+                from apps.alertas.services import _enviar_twilio, _enviar_meta
+                from django.conf import settings
+                provider = getattr(settings, "WHATSAPP_PROVIDER", "TWILIO").upper()
+                mensaje = (
+                    f"Estimado/a {cliente.nombres}, le informamos que la proforma "
+                    f"*{cot.numero_cotizacion}* por un total de *${cot.total}* "
+                    "está lista. Puede solicitarnos el PDF por este medio o acercarse al taller."
+                )
+                if provider == "META":
+                    ok, err = _enviar_meta(telefono, mensaje)
+                else:
+                    ok, err = _enviar_twilio(telefono, mensaje)
+                if ok:
+                    exitos.append("WhatsApp enviado correctamente.")
+                else:
+                    errores.append(f"WhatsApp: {err}")
+            except Exception as exc:
+                errores.append(f"WhatsApp: {exc}")
+        else:
+            errores.append("El cliente no tiene teléfono registrado.")
+
+    for msg in exitos:
+        messages.success(request, msg)
+    for msg in errores:
+        messages.error(request, msg)
+
     return redirect("cotizaciones:detalle", pk=pk)
 
 

@@ -82,13 +82,23 @@
               {{ form.diagnostico }}
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Autorización del cliente</label>
-              {{ form.autorizacion_cliente }}
-              <small class="text-muted">Registre la autorización verbal o escrita del cliente para realizar los trabajos.</small>
+              <div class="form-check form-switch">
+                {{ form.autorizacion_cliente }}
+                <label class="form-check-label fw-semibold" for="{{ form.autorizacion_cliente.id_for_label }}">
+                  El cliente autorizó los trabajos
+                </label>
+              </div>
+              <small class="text-muted d-block mt-1">Marcar cuando el cliente da su aprobación verbal o escrita para realizar los trabajos indicados.</small>
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Observaciones</label>
               {{ form.observaciones }}
+            </div>
+            <!-- IVA siempre al 15% — no configurable desde UI -->
+            <div class="col-12 col-md-6">
+              <div class="alert alert-info py-1 px-2 mb-0 small">
+                <i class="fas fa-info-circle me-1"></i>IVA del <strong>15%</strong> se aplica automáticamente sobre el total.
+              </div>
             </div>
           </div>
 
@@ -112,33 +122,39 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const clienteEl = document.getElementById("id_cliente");
-  const vehiculoEl = document.getElementById("id_vehiculo");
+$(document).ready(function () {
+  const $clienteEl = $('#id_cliente');
+  const $vehiculoEl = $('#id_vehiculo');
   const kmEl = document.getElementById("id_kilometraje_ingreso");
-  if (!clienteEl || !vehiculoEl) return;
 
-  clienteEl.addEventListener("change", function () {
-    const id = clienteEl.value;
-    vehiculoEl.innerHTML = '<option value="">Cargando vehículos...</option>';
-    if (!id) { vehiculoEl.innerHTML = '<option value="">Seleccione un cliente primero</option>'; return; }
-    fetch("{% url 'ordenes:vehiculos_por_cliente' %}?cliente=" + encodeURIComponent(id))
+  function cargarVehiculos(clienteId) {
+    $vehiculoEl.html('<option value="">Cargando vehículos...</option>').trigger('change');
+    if (!clienteId) {
+      $vehiculoEl.html('<option value="">Seleccione un cliente primero</option>').trigger('change');
+      return;
+    }
+    fetch("{% url 'ordenes:vehiculos_por_cliente' %}?cliente=" + encodeURIComponent(clienteId))
       .then(r => r.json())
       .then(data => {
-        vehiculoEl.innerHTML = '<option value="">Seleccione un vehículo</option>';
+        $vehiculoEl.html('<option value="">Seleccione un vehículo</option>');
         data.results.forEach(item => {
-          const o = document.createElement("option");
-          o.value = item.id;
-          o.textContent = item.text;
-          o.dataset.km = item.kilometraje;
-          vehiculoEl.appendChild(o);
+          const o = new Option(item.text, item.id, false, false);
+          $(o).data('km', item.kilometraje);
+          $vehiculoEl.append(o);
         });
+        $vehiculoEl.trigger('change');
       });
+  }
+
+  // Select2 dispara 'select2:select' además de 'change'
+  $clienteEl.on('select2:select select2:clear change', function () {
+    cargarVehiculos($clienteEl.val());
   });
 
-  vehiculoEl.addEventListener("change", function () {
-    const sel = vehiculoEl.options[vehiculoEl.selectedIndex];
-    if (sel && sel.dataset.km && kmEl) kmEl.value = sel.dataset.km;
+  $vehiculoEl.on('select2:select change', function () {
+    const sel = $vehiculoEl[0].options[$vehiculoEl[0].selectedIndex];
+    const km = $(sel).data('km');
+    if (km !== undefined && kmEl) kmEl.value = km;
   });
 });
 </script>

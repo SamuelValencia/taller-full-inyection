@@ -12,7 +12,7 @@ from apps.vehiculos.models import Vehiculo
 from apps.alertas.models import Alerta
 
 
-@admin_o_recepcionista_requerido
+@rol_autenticado_requerido
 def lista(request):
     estado = request.GET.get("estado", "")
     q = request.GET.get("q", "")
@@ -142,6 +142,8 @@ def detalle(request, pk):
         pk=pk,
     )
     detalles = orden.detalles.select_related("servicio").all()
+    # Sanear costos almacenados por si están desactualizados (datos viejos)
+    _recalcular_costos(orden)
     servicios_catalogo = Servicio.objects.filter(estado=True).order_by("categoria", "nombre")
     servicios_agregados_ids = list(
         detalles.filter(tipo="SERVICIO", servicio__isnull=False).values_list("servicio_id", flat=True)
@@ -160,10 +162,17 @@ def cambiar_estado(request, pk):
     orden = get_object_or_404(OrdenTrabajo, pk=pk)
     if request.method == "POST":
         nuevo_estado = request.POST.get("estado")
-        if nuevo_estado in dict(OrdenTrabajo.Estado.choices):
-            orden.estado = nuevo_estado
-            if nuevo_estado == "ENTREGADA":
-                orden.fecha_entrega_real = timezone.now()
+        if nuevo_estado not in dict(OrdenTrabajo.Estado.choices):
+            return redirect("ordenes:detalle", pk=pk)
+
+        # Cuando se pasa a FINALIZADA, mostrar formulario de cierre
+        if nuevo_estado == "FINALIZADA" and orden.estado != "FINALIZADA":
+            return redirect("ordenes:formulario_finalizar", pk=pk)
+
+        orden.estado = nuevo_estado
+        if nuevo_estado == "ENTREGADA":
+            orden.fecha_entrega_real = timezone.now()
+            if orden.recepcionista:
                 Alerta.objects.create(
                     tipo=Alerta.TipoAlerta.VEHICULO_LISTO,
                     nivel=Alerta.Nivel.INFO,
@@ -172,9 +181,53 @@ def cambiar_estado(request, pk):
                     mensaje=f"El vehiculo {orden.vehiculo.placa} ha sido entregado. Orden: {orden.numero_orden}",
                     destinatario=orden.recepcionista,
                 )
-            orden.save()
-            messages.success(request, f"Estado actualizado a: {orden.get_estado_display()}")
+        orden.save()
+        messages.success(request, f"Estado actualizado a: {orden.get_estado_display()}")
     return redirect("ordenes:detalle", pk=pk)
+
+
+@admin_o_mecanico_requerido
+def formulario_finalizar(request, pk):
+    """
+    Formulario de cierre que se muestra antes de marcar una OT como FINALIZADA.
+    Permite configurar el recordatorio de mantenimiento preventivo.
+    """
+    orden = get_object_or_404(OrdenTrabajo, pk=pk)
+
+    if orden.estado == "FINALIZADA":
+        messages.info(request, "Esta orden ya está finalizada.")
+        return redirect("ordenes:detalle", pk=pk)
+
+    if request.method == "POST":
+        requiere = request.POST.get("requiere_recordatorio") == "on"
+        orden.requiere_recordatorio = requiere
+
+        if requiere:
+            try:
+                dias = int(request.POST.get("intervalo_dias_recordatorio") or 0)
+                km = int(request.POST.get("intervalo_km_recordatorio") or 0)
+            except ValueError:
+                messages.error(request, "Los intervalos deben ser numeros enteros.")
+                return render(request, "ordenes/formulario_finalizar.html", {"orden": orden})
+
+            if not dias and not km:
+                messages.error(request, "Debe indicar al menos un intervalo (dias o km) para el recordatorio.")
+                return render(request, "ordenes/formulario_finalizar.html", {"orden": orden})
+
+            orden.intervalo_dias_recordatorio = dias or None
+            orden.intervalo_km_recordatorio = km or None
+            orden.canal_recordatorio = request.POST.get("canal_recordatorio", "EMAIL")
+
+        orden.estado = OrdenTrabajo.Estado.FINALIZADA
+        orden.save()
+        messages.success(
+            request,
+            f"Orden {orden.numero_orden} finalizada."
+            + (" Se programó recordatorio de mantenimiento para el cliente." if requiere else "")
+        )
+        return redirect("ordenes:detalle", pk=pk)
+
+    return render(request, "ordenes/formulario_finalizar.html", {"orden": orden})
 
 
 @admin_o_mecanico_requerido
@@ -302,6 +355,28 @@ def agregar_repuestos_sugeridos(request, pk):
     else:
         messages.warning(request, "No se agregó ningún repuesto.")
     return redirect("ordenes:detalle", pk=pk)
+
+
+@admin_o_recepcionista_requerido
+def editar_detalle(request, pk, det_pk):
+    """AJAX: edita cantidad y precio_unitario de un DetalleOrdenTrabajo y recalcula costos."""
+    import json
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "Método no permitido."}, status=405)
+    det = get_object_or_404(DetalleOrdenTrabajo, pk=det_pk, orden__pk=pk)
+    try:
+        data = json.loads(request.body)
+        cantidad = Decimal(str(data["cantidad"]))
+        precio = Decimal(str(data["precio_unitario"]))
+        if cantidad <= 0 or precio < 0:
+            raise ValueError
+    except (KeyError, ValueError, Exception):
+        return JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
+    det.cantidad = cantidad
+    det.precio_unitario = precio
+    det.save(update_fields=["cantidad", "precio_unitario"])
+    _recalcular_costos(det.orden)
+    return JsonResponse({"ok": True, "subtotal": float(det.subtotal)})
 
 
 @admin_o_mecanico_requerido

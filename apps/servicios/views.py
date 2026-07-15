@@ -4,12 +4,12 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.decorators import admin_o_recepcionista_requerido
+from apps.decorators import admin_o_recepcionista_requerido, rol_autenticado_requerido
 from .forms import ServicioForm
 from .models import Servicio, ServicioRepuesto
 
 
-@admin_o_recepcionista_requerido
+@rol_autenticado_requerido
 def lista(request):
     q = request.GET.get("q", "")
     servicios = Servicio.objects.all()

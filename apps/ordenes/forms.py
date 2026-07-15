@@ -14,8 +14,8 @@ class OrdenTrabajoForm(forms.ModelForm):
             "descripcion_problema", "diagnostico", "autorizacion_cliente", "observaciones",
         ]
         widgets = {
-            "cliente": forms.Select(attrs={"class": "form-select", "id": "id_cliente"}),
-            "vehiculo": forms.Select(attrs={"class": "form-select", "id": "id_vehiculo"}),
+            "cliente": forms.Select(attrs={"class": "form-select select2-enable", "id": "id_cliente", "data-placeholder": "Buscar cliente…"}),
+            "vehiculo": forms.Select(attrs={"class": "form-select select2-enable", "id": "id_vehiculo", "data-placeholder": "Seleccione un vehículo…"}),
             "tecnico_asignado": forms.Select(attrs={"class": "form-select"}),
             "estado": forms.Select(attrs={"class": "form-select"}),
             "prioridad": forms.Select(attrs={"class": "form-select"}),
@@ -24,7 +24,7 @@ class OrdenTrabajoForm(forms.ModelForm):
             "fecha_estimada_entrega": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
             "descripcion_problema": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Síntomas reportados por el cliente..."}),
             "diagnostico": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Diagnóstico técnico..."}),
-            "autorizacion_cliente": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "El cliente autoriza los trabajos indicados..."}),
+            "autorizacion_cliente": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
 

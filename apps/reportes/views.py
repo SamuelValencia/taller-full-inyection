@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.conf import settings
+from django.core import signing
 from xhtml2pdf import pisa
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
@@ -16,13 +17,15 @@ from apps.mantenimiento.models import HistorialMantenimiento
 from apps.inventario.models import Repuesto
 
 
-def render_pdf(template_path, context):
+def render_pdf(template_path, context, filename="documento.pdf"):
     template = get_template(template_path)
     html = template.render(context)
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html.encode("utf-8")), result)
     if not pdf.err:
-        return HttpResponse(result.getvalue(), content_type="application/pdf")
+        response = HttpResponse(result.getvalue(), content_type="application/pdf")
+        response["Content-Disposition"] = f'inline; filename="{filename}"'
+        return response
     return HttpResponse("Error generando PDF", status=500)
 
 
@@ -60,6 +63,143 @@ def orden_pdf(request, pk):
         "taller_direccion": settings.TALLER_DIRECCION,
     }
     return render_pdf("reportes/orden_pdf.html", context)
+
+
+@admin_o_recepcionista_requerido
+def enviar_orden_notificacion(request, pk):
+    """Envía el PDF de la OT al cliente por email y/o WhatsApp."""
+    from django.shortcuts import redirect
+    from django.contrib import messages
+    if request.method != "POST":
+        return redirect("ordenes:detalle", pk=pk)
+
+    orden = get_object_or_404(
+        OrdenTrabajo.objects.select_related("cliente"),
+        pk=pk,
+    )
+    canal = request.POST.get("canal", "EMAIL")
+    cliente = orden.cliente
+
+    errores = []
+    exitos = []
+
+    if canal in ("EMAIL", "AMBOS"):
+        email = getattr(cliente, "email", "") or ""
+        if email:
+            try:
+                from django.core.mail import EmailMessage
+                from django.template.loader import get_template
+
+                detalles = orden.detalles.all()
+                tpl = get_template("reportes/orden_pdf.html")
+                html = tpl.render({
+                    "orden": orden, "detalles": detalles,
+                    "taller_nombre": settings.TALLER_NOMBRE,
+                    "taller_telefono": settings.TALLER_TELEFONO,
+                    "taller_direccion": settings.TALLER_DIRECCION,
+                })
+                buf = BytesIO()
+                pisa.pisaDocument(BytesIO(html.encode("utf-8")), buf)
+
+                msg = EmailMessage(
+                    subject=f"Orden de Trabajo {orden.numero_orden} — Fuel Injection",
+                    body=(
+                        f"Estimado/a {cliente.nombres} {cliente.apellidos},\n\n"
+                        f"Adjuntamos el resumen de la Orden de Trabajo {orden.numero_orden}.\n\n"
+                        "Quedo a su disposición para cualquier consulta.\n\n"
+                        f"{settings.TALLER_NOMBRE}"
+                    ),
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                    to=[email],
+                )
+                msg.attach(f"OT-{orden.numero_orden}.pdf", buf.getvalue(), "application/pdf")
+                msg.send()
+                exitos.append("Email enviado correctamente.")
+            except Exception as exc:
+                errores.append(f"Email: {exc}")
+        else:
+            errores.append("El cliente no tiene email registrado.")
+
+    if canal in ("WHATSAPP", "AMBOS"):
+        telefono = getattr(cliente, "telefono", "") or ""
+        if telefono:
+            try:
+                from apps.alertas.services import _enviar_twilio, _enviar_meta
+                provider = getattr(settings, "WHATSAPP_PROVIDER", "TWILIO").upper()
+
+                mensaje = (
+                    f"Estimado/a {cliente.nombres}, su vehículo "
+                    f"{orden.vehiculo.get_marca_display()} {orden.vehiculo.modelo} ({orden.vehiculo.placa}) "
+                    f"está listo. OT *{orden.numero_orden}* — Total: *${orden.costo_total}*.\n"
+                    "Puede pasar a retirar su vehículo. ¡Gracias por elegirnos!"
+                )
+                if provider == "META":
+                    ok, err = _enviar_meta(telefono, mensaje)
+                else:
+                    ok, err = _enviar_twilio(telefono, mensaje)
+                if ok:
+                    exitos.append("WhatsApp enviado correctamente.")
+                else:
+                    errores.append(f"WhatsApp: {err}")
+            except Exception as exc:
+                errores.append(f"WhatsApp: {exc}")
+        else:
+            errores.append("El cliente no tiene teléfono registrado.")
+
+    for m in exitos:
+        messages.success(request, m)
+    for m in errores:
+        messages.error(request, m)
+
+    return redirect("ordenes:detalle", pk=pk)
+
+
+def pdf_publico(request, token):
+    """
+    Sirve un PDF (OT o cotización) sin autenticación, usando un token firmado
+    con django.core.signing que expira en 24 horas.
+    Uso: signing.dumps({"tipo": "orden"|"cotizacion", "pk": pk}, salt="pdf-publico")
+    """
+    try:
+        datos = signing.loads(token, salt="pdf-publico", max_age=86400)
+    except signing.BadSignature:
+        return HttpResponse("Enlace inválido o expirado.", status=410)
+
+    tipo = datos.get("tipo")
+    pk = datos.get("pk")
+
+    if tipo == "orden":
+        orden = get_object_or_404(
+            OrdenTrabajo.objects.select_related("vehiculo", "cliente", "tecnico_asignado", "recepcionista"),
+            pk=pk,
+        )
+        ctx = {
+            "orden": orden,
+            "detalles": orden.detalles.all(),
+            "taller_nombre": settings.TALLER_NOMBRE,
+            "taller_telefono": settings.TALLER_TELEFONO,
+            "taller_direccion": settings.TALLER_DIRECCION,
+        }
+        nombre = f"OT-{orden.numero_orden}.pdf"
+        return render_pdf("reportes/orden_pdf.html", ctx, nombre)
+
+    if tipo == "cotizacion":
+        from apps.cotizaciones.models import Cotizacion
+        cot = get_object_or_404(
+            Cotizacion.objects.select_related("cliente", "vehiculo", "elaborado_por"),
+            pk=pk,
+        )
+        ctx = {
+            "cotizacion": cot,
+            "detalles": cot.detalles.select_related("servicio").all(),
+            "taller_nombre": settings.TALLER_NOMBRE,
+            "taller_telefono": settings.TALLER_TELEFONO,
+            "taller_direccion": settings.TALLER_DIRECCION,
+        }
+        nombre = f"proforma-{cot.numero_cotizacion}.pdf"
+        return render_pdf("cotizaciones/cotizacion_pdf.html", ctx, nombre)
+
+    return HttpResponse("Tipo de documento desconocido.", status=400)
 
 
 @admin_o_recepcionista_requerido

@@ -1,11 +1,11 @@
 ﻿from django.contrib import messages
 from django.shortcuts import render, get_object_or_404, redirect
-from ..decorators import admin_o_recepcionista_requerido, admin_o_mecanico_requerido
+from ..decorators import admin_o_recepcionista_requerido, admin_o_mecanico_requerido, rol_autenticado_requerido
 from .models import TipoServicioMantenimiento, ProgramaMantenimiento, HistorialMantenimiento
 from .forms import ProgramaMantenimientoForm, HistorialMantenimientoForm, TipoServicioForm
 
 
-@admin_o_recepcionista_requerido
+@rol_autenticado_requerido
 def lista(request):
     programas = ProgramaMantenimiento.objects.filter(activo=True).select_related("vehiculo", "tipo_servicio").order_by("proxima_fecha", "proximo_km")
     return render(request, "mantenimiento/lista.html", {"programas": programas})

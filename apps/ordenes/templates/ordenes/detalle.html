@@ -11,13 +11,9 @@
     <a href="{% url 'ordenes:lista' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Volver</a>
     <a href="{% url 'ordenes:editar' orden.pk %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-edit me-1"></i>Editar</a>
     <a href="{% url 'reportes:orden_pdf' orden.pk %}" class="btn btn-outline-danger btn-sm" target="_blank"><i class="fas fa-file-pdf me-1"></i>PDF OT</a>
-    {% if orden.estado == 'FINALIZADA' %}
-      {% if orden.factura %}
-      <a href="{% url 'facturacion:detalle' orden.factura.pk %}" class="btn btn-success btn-sm"><i class="fas fa-receipt me-1"></i>Ver Factura</a>
-      {% else %}
-      <a href="{% url 'facturacion:crear' orden.pk %}" class="btn btn-success btn-sm"><i class="fas fa-receipt me-1"></i>Generar Factura</a>
-      {% endif %}
-    {% endif %}
+    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalEnviarOT">
+      <i class="fas fa-paper-plane me-1"></i>Enviar
+    </button>
   </div>
 </div>
 
@@ -120,16 +116,19 @@
     </div>
   </div>
 
-  {% if orden.autorizacion_cliente %}
   <div class="col-12">
-    <div class="card border-0 shadow-sm border-start border-success border-3">
-      <div class="card-body py-2 px-3 small">
-        <small class="text-muted fw-semibold text-uppercase"><i class="fas fa-signature me-1"></i>Autorización del cliente</small>
-        <p class="mb-0 mt-1">{{ orden.autorizacion_cliente }}</p>
+    <div class="card border-0 shadow-sm border-start border-3 {% if orden.autorizacion_cliente %}border-success{% else %}border-warning{% endif %}">
+      <div class="card-body py-2 px-3 small d-flex align-items-center gap-2">
+        <i class="fas fa-signature text-muted"></i>
+        <small class="text-muted fw-semibold text-uppercase">Autorización del cliente</small>
+        {% if orden.autorizacion_cliente %}
+          <span class="badge bg-success ms-1"><i class="fas fa-check me-1"></i>Autorizado</span>
+        {% else %}
+          <span class="badge bg-warning text-dark ms-1"><i class="fas fa-clock me-1"></i>Pendiente de autorización</span>
+        {% endif %}
       </div>
     </div>
   </div>
-  {% endif %}
 
   <!-- Tabla de trabajos -->
   <div class="col-12">
@@ -152,24 +151,35 @@
             </thead>
             <tbody>
               {% for det in detalles %}
-              <tr>
+              <tr data-det-id="{{ det.pk }}" data-subtotal="{{ det.subtotal }}" data-tipo="{{ det.tipo }}">
                 <td>
                   {% if det.tipo == 'SERVICIO' %}<span class="badge bg-warning text-dark">Servicio</span>
                   {% else %}<span class="badge bg-secondary">Repuesto</span>{% endif %}
                 </td>
                 <td>{{ det.descripcion }}</td>
-                <td class="text-center">{{ det.cantidad|floatformat:0 }}</td>
-                <td class="text-end">$ {{ det.precio_unitario|floatformat:2 }}</td>
-                <td class="text-end fw-semibold">$ {{ det.subtotal|floatformat:2 }}</td>
+                <td class="text-center cel-cantidad">
+                  <span class="txt-cantidad">{{ det.cantidad|floatformat:0 }}</span>
+                  <input type="number" class="form-control form-control-sm inp-cantidad d-none" value="{{ det.cantidad|floatformat:0 }}" min="1" step="1" style="width:70px;display:inline-block">
+                </td>
+                <td class="text-end cel-precio">
+                  <span class="txt-precio">$ {{ det.precio_unitario|floatformat:2 }}</span>
+                  <input type="number" class="form-control form-control-sm inp-precio d-none" value="{{ det.precio_unitario }}" min="0" step="0.01" style="width:90px;display:inline-block">
+                </td>
+                <td class="text-end fw-semibold cel-subtotal">$ {{ det.subtotal|floatformat:2 }}</td>
                 <td>
-                  {% if orden.estado != 'ENTREGADA' and orden.estado != 'CANCELADA' %}
-                  <form method="post" action="{% url 'ordenes:eliminar_detalle' orden.pk det.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-link btn-sm text-danger p-0" onclick="return confirm('¿Eliminar este ítem?')" title="Eliminar">
-                      <i class="fas fa-trash-alt"></i>
-                    </button>
-                  </form>
-                  {% endif %}
+                  <div class="d-flex gap-1 justify-content-end align-items-center">
+                    {% if orden.estado != 'ENTREGADA' and orden.estado != 'CANCELADA' %}
+                    <button class="btn btn-link btn-sm text-primary p-0 btn-edit-ot" title="Editar"><i class="fas fa-pencil-alt fa-xs"></i></button>
+                    <button class="btn btn-link btn-sm text-success p-0 btn-save-ot d-none" title="Guardar"><i class="fas fa-check fa-xs"></i></button>
+                    <button class="btn btn-link btn-sm text-secondary p-0 btn-cancel-ot d-none" title="Cancelar"><i class="fas fa-times fa-xs"></i></button>
+                    <form method="post" action="{% url 'ordenes:eliminar_detalle' orden.pk det.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-link btn-sm text-danger p-0 btn-del-ot" onclick="return confirm('¿Eliminar este ítem?')" title="Eliminar">
+                        <i class="fas fa-trash-alt fa-xs"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
               {% empty %}
@@ -181,12 +191,21 @@
       </div>
       <div class="card-footer bg-white">
         <div class="row justify-content-end">
-          <div class="col-sm-5 col-md-4">
-            <table class="table table-sm mb-0">
-              <tr><td class="text-muted">Mano de obra</td><td class="text-end">$ {{ orden.costo_mano_obra|floatformat:2 }}</td></tr>
-              <tr><td class="text-muted">Repuestos</td><td class="text-end">$ {{ orden.costo_repuestos|floatformat:2 }}</td></tr>
+          <div class="col-sm-6 col-md-4">
+            <table class="table table-sm mb-0"
+                   id="totales-ot"
+                   data-porcentaje-iva="{{ orden.porcentaje_iva }}"
+                   data-descuento="{{ orden.descuento|floatformat:2 }}">
+              <tr><td class="text-muted">Subtotal</td><td class="text-end" id="val-subtotal-ot">$ {{ orden.subtotal_bruto|floatformat:2 }}</td></tr>
               <tr><td class="text-muted">Descuento</td><td class="text-end text-danger">- $ {{ orden.descuento|floatformat:2 }}</td></tr>
-              <tr class="fw-bold table-light"><td>TOTAL</td><td class="text-end fs-5 text-success">$ {{ orden.costo_total|floatformat:2 }}</td></tr>
+              <tr>
+                <td class="text-muted">IVA ({{ orden.porcentaje_iva }}%)</td>
+                <td class="text-end" id="val-iva-ot">$ {{ orden.iva_monto|floatformat:2 }}</td>
+              </tr>
+              <tr class="fw-bold table-light">
+                <td>TOTAL</td>
+                <td class="text-end fs-5 text-success" id="val-total-ot">$ {{ orden.costo_total|floatformat:2 }}</td>
+              </tr>
             </table>
           </div>
         </div>
@@ -247,20 +266,23 @@
         <h6 class="mb-0 fw-semibold"><i class="fas fa-cog me-2"></i>Agregar Repuesto / Material</h6>
       </div>
       <div class="card-body">
-        <form method="post" action="{% url 'ordenes:agregar_repuesto' orden.pk %}">
+        <form method="post" action="{% url 'ordenes:agregar_repuesto' orden.pk %}" id="form-repuesto-ot">
           {% csrf_token %}
           <div class="mb-2">
-            <label class="form-label form-label-sm fw-semibold">Descripción <span class="text-danger">*</span></label>
-            <input type="text" name="descripcion" class="form-control form-control-sm" placeholder="Ej: Filtro de aceite Bosch" maxlength="200" required>
+            <label class="form-label form-label-sm fw-semibold">Repuesto <span class="text-danger">*</span></label>
+            <select id="sel-inventario-ot" class="form-select form-select-sm">
+              <option value="">— Escriba para buscar —</option>
+            </select>
+            <input type="hidden" name="descripcion" id="inp-desc-repuesto-ot">
           </div>
           <div class="row g-2 mb-3">
             <div class="col-5">
               <label class="form-label form-label-sm fw-semibold">Cantidad <span class="text-danger">*</span></label>
-              <input type="number" name="cantidad" class="form-control form-control-sm" value="1" min="1" step="1" required>
+              <input type="number" name="cantidad" id="inp-cant-repuesto-ot" class="form-control form-control-sm" value="1" min="1" step="1" required>
             </div>
             <div class="col-7">
               <label class="form-label form-label-sm fw-semibold">Precio unit. ($) <span class="text-danger">*</span></label>
-              <input type="number" name="precio_unitario" class="form-control form-control-sm" value="0.00" min="0" step="0.01" placeholder="0.00" required>
+              <input type="number" name="precio_unitario" id="inp-precio-repuesto-ot" class="form-control form-control-sm" value="0.00" min="0" step="0.01" placeholder="0.00" required>
             </div>
           </div>
           <button type="submit" class="btn btn-secondary btn-sm w-100">
@@ -451,6 +473,131 @@ if (selOT) {
 document.getElementById('btn-cerrar-sugeridos')?.addEventListener('click', cerrarPanel);
 document.getElementById('btn-cerrar-sugeridos2')?.addEventListener('click', cerrarPanel);
 
+// ── SELECTOR INVENTARIO REPUESTOS (OT) ───────────────────────────
+const BUSCAR_URL_OT = "{% url 'inventario:buscar_repuestos' %}";
+const $selInvOT = $('#sel-inventario-ot');
+if ($selInvOT.length) {
+  $selInvOT.select2({
+    theme: 'bootstrap-5',
+    width: '100%',
+    placeholder: 'Escriba para buscar en inventario…',
+    allowClear: true,
+    minimumInputLength: 1,
+    ajax: {
+      url: BUSCAR_URL_OT,
+      dataType: 'json',
+      delay: 250,
+      data: params => ({ q: params.term }),
+      processResults: data => ({ results: data.results }),
+      cache: true,
+    },
+    language: { inputTooShort: () => 'Escriba al menos 1 carácter…', noResults: () => 'Sin resultados' }
+  });
+  $selInvOT.on('select2:select', function (e) {
+    const d = e.params.data;
+    document.getElementById('inp-desc-repuesto-ot').value  = d.nombre;
+    document.getElementById('inp-precio-repuesto-ot').value = d.precio.toFixed(2);
+  });
+  $selInvOT.on('select2:clear', function () {
+    document.getElementById('inp-desc-repuesto-ot').value  = '';
+    document.getElementById('inp-precio-repuesto-ot').value = '0.00';
+  });
+}
+
+// ── INLINE EDITING OT ────────────────────────────────────────────
+const CSRF_OT = '{{ csrf_token }}';
+const tblTot  = document.getElementById('totales-ot');
+const pctIva  = parseFloat(tblTot?.dataset.porcentajeIva || '15');
+const dctoOT  = parseFloat(tblTot?.dataset.descuento || '0');
+
+function recalcTotalesOT() {
+  let subtotal = 0;
+  document.querySelectorAll('tr[data-det-id]').forEach(tr => {
+    subtotal += parseFloat(tr.dataset.subtotal) || 0;
+  });
+  const base  = subtotal - dctoOT;
+  const iva   = base * pctIva / 100;
+  const total = base + iva;
+  const elSub = document.getElementById('val-subtotal-ot');
+  const elIva = document.getElementById('val-iva-ot');
+  const elTot = document.getElementById('val-total-ot');
+  if (elSub) elSub.textContent = '$ ' + subtotal.toFixed(2);
+  if (elIva) elIva.textContent = '$ ' + iva.toFixed(2);
+  if (elTot) elTot.textContent = '$ ' + total.toFixed(2);
+}
+
+document.querySelectorAll('tr[data-det-id]').forEach(tr => {
+  const btnEdit   = tr.querySelector('.btn-edit-ot');
+  const btnSave   = tr.querySelector('.btn-save-ot');
+  const btnCancel = tr.querySelector('.btn-cancel-ot');
+  const btnDel    = tr.querySelector('.btn-del-ot');
+  if (!btnEdit) return;
+
+  const inpCant   = tr.querySelector('.inp-cantidad');
+  const inpPrecio = tr.querySelector('.inp-precio');
+  const txtCant   = tr.querySelector('.txt-cantidad');
+  const txtPrecio = tr.querySelector('.txt-precio');
+  const celSub    = tr.querySelector('.cel-subtotal');
+
+  let cantOrig, precioOrig;
+
+  btnEdit.addEventListener('click', () => {
+    cantOrig   = inpCant.value;
+    precioOrig = inpPrecio.value;
+    txtCant.classList.add('d-none');   inpCant.classList.remove('d-none');
+    txtPrecio.classList.add('d-none'); inpPrecio.classList.remove('d-none');
+    btnEdit.classList.add('d-none');
+    if (btnDel) btnDel.classList.add('d-none');
+    btnSave.classList.remove('d-none');
+    btnCancel.classList.remove('d-none');
+  });
+
+  btnCancel.addEventListener('click', () => {
+    inpCant.value   = cantOrig;
+    inpPrecio.value = precioOrig;
+    inpCant.classList.add('d-none');   txtCant.classList.remove('d-none');
+    inpPrecio.classList.add('d-none'); txtPrecio.classList.remove('d-none');
+    btnSave.classList.add('d-none');
+    btnCancel.classList.add('d-none');
+    btnEdit.classList.remove('d-none');
+    if (btnDel) btnDel.classList.remove('d-none');
+  });
+
+  btnSave.addEventListener('click', () => {
+    const cant   = parseFloat(inpCant.value);
+    const precio = parseFloat(inpPrecio.value);
+    if (isNaN(cant) || cant <= 0 || isNaN(precio) || precio < 0) {
+      alert('Cantidad debe ser > 0 y precio ≥ 0'); return;
+    }
+    const detId = tr.dataset.detId;
+    // URL correcta: reemplaza el placeholder /0/ con /detId/
+    const url = "{% url 'ordenes:editar_detalle' orden.pk 0 %}".replace('/0/', '/' + detId + '/');
+    fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_OT},
+      body: JSON.stringify({cantidad: cant, precio_unitario: precio}),
+    })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => {
+      if (d.ok) {
+        tr.dataset.subtotal = d.subtotal;
+        celSub.textContent  = '$ ' + parseFloat(d.subtotal).toFixed(2);
+        txtCant.textContent  = cant % 1 === 0 ? cant.toFixed(0) : cant.toFixed(2);
+        txtPrecio.textContent = '$ ' + precio.toFixed(2);
+        inpCant.classList.add('d-none');   txtCant.classList.remove('d-none');
+        inpPrecio.classList.add('d-none'); txtPrecio.classList.remove('d-none');
+        btnSave.classList.add('d-none');   btnCancel.classList.add('d-none');
+        btnEdit.classList.remove('d-none');
+        if (btnDel) btnDel.classList.remove('d-none');
+        recalcTotalesOT();
+      } else {
+        alert('Error al guardar: ' + (d.error || 'desconocido'));
+      }
+    })
+    .catch(status => alert('Error al guardar (HTTP ' + status + '). Recarga la página e intenta de nuevo.'));
+  });
+});
+
 // Al enviar form de sugeridos: excluir filas desmarcadas de los arrays paralelos
 document.getElementById('form-sugeridos')?.addEventListener('submit', function (e) {
   const marcados = tbodySug.querySelectorAll('.chk-rep:checked');
@@ -461,4 +608,35 @@ document.getElementById('form-sugeridos')?.addEventListener('submit', function (
   }
 });
 </script>
+
+<!-- Modal Enviar OT -->
+<div class="modal fade" id="modalEnviarOT" tabindex="-1" aria-labelledby="modalEnviarOTLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="post" action="{% url 'reportes:enviar_orden' orden.pk %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEnviarOTLabel"><i class="fas fa-paper-plane me-2 text-primary"></i>Enviar resumen de OT</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-3">
+            Se enviará la Orden <strong>{{ orden.numero_orden }}</strong>
+            a <strong>{{ orden.cliente.nombres }} {{ orden.cliente.apellidos }}</strong>.
+          </p>
+          <label class="form-label fw-semibold">Canal de envío</label>
+          <select name="canal" class="form-select form-select-sm">
+            <option value="EMAIL">📧 Email ({{ orden.cliente.email|default:"sin email" }})</option>
+            <option value="WHATSAPP">📱 WhatsApp ({{ orden.cliente.telefono|default:"sin teléfono" }})</option>
+            <option value="AMBOS">📧📱 Email y WhatsApp</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane me-1"></i>Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

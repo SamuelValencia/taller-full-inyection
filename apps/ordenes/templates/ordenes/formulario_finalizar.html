@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Finalizar orden {{ orden.numero_orden }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h4 fw-bold mb-0">
+      <i class="fas fa-flag-checkered me-2 text-success"></i>Finalizar orden {{ orden.numero_orden }}
+    </h1>
+    <small class="text-muted">
+      {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} &mdash; {{ orden.vehiculo.placa }}
+      &bull; Cliente: {{ orden.cliente.nombres }} {{ orden.cliente.apellidos }}
+    </small>
+  </div>
+  <a href="{% url 'ordenes:detalle' orden.pk %}" class="btn btn-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i>Cancelar
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <!-- Resumen de la orden -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-light py-2">
+        <h6 class="mb-0 fw-semibold"><i class="fas fa-clipboard-list me-2 text-warning"></i>Resumen de trabajos</h6>
+      </div>
+      <div class="card-body small">
+        {% if orden.detalles.all %}
+          <ul class="mb-0 ps-3">
+            {% for d in orden.detalles.all %}
+              <li>{{ d.descripcion }} &times; {{ d.cantidad|floatformat:0 }} — ${{ d.subtotal }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">{{ orden.descripcion_problema }}</p>
+        {% endif %}
+        <div class="mt-2 fw-semibold">Total: ${{ orden.costo_total }}</div>
+      </div>
+    </div>
+
+    <!-- Formulario de cierre -->
+    <form method="post">
+      {% csrf_token %}
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-success text-white py-2">
+          <h6 class="mb-0 fw-semibold">
+            <i class="fas fa-bell me-2"></i>Recordatorio de mantenimiento preventivo
+          </h6>
+        </div>
+        <div class="card-body">
+
+          <!-- Toggle principal -->
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="requiere_recordatorio"
+                   name="requiere_recordatorio" {% if orden.requiere_recordatorio %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="requiere_recordatorio">
+              Programar recordatorio de mantenimiento para este cliente
+            </label>
+            <div class="form-text">
+              Si se activa, el sistema enviará un aviso automático cuando se acerque la fecha
+              o kilometraje del próximo mantenimiento.
+            </div>
+          </div>
+
+          <!-- Campos de intervalo (se muestran solo si el toggle está activo) -->
+          <div id="campos_recordatorio" class="border rounded p-3 bg-light" style="display:none">
+
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label for="intervalo_dias_recordatorio" class="form-label fw-semibold">
+                  <i class="fas fa-calendar-alt me-1 text-primary"></i>Cada cuántos días
+                </label>
+                <div class="input-group">
+                  <input type="number" id="intervalo_dias_recordatorio"
+                         name="intervalo_dias_recordatorio" class="form-control"
+                         min="1" max="3650"
+                         value="{{ orden.intervalo_dias_recordatorio|default:'' }}"
+                         placeholder="Ej: 90">
+                  <span class="input-group-text text-muted">días</span>
+                </div>
+                <div class="form-text">90 = cada 3 meses &bull; 180 = cada 6 meses</div>
+              </div>
+
+              <div class="col-sm-6">
+                <label for="intervalo_km_recordatorio" class="form-label fw-semibold">
+                  <i class="fas fa-tachometer-alt me-1 text-warning"></i>Cada cuántos km
+                </label>
+                <div class="input-group">
+                  <input type="number" id="intervalo_km_recordatorio"
+                         name="intervalo_km_recordatorio" class="form-control"
+                         min="1" max="999999"
+                         value="{{ orden.intervalo_km_recordatorio|default:'' }}"
+                         placeholder="Ej: 5000">
+                  <span class="input-group-text text-muted">km</span>
+                </div>
+                <div class="form-text">Dejar en blanco si solo aplica por tiempo.</div>
+              </div>
+
+              <div class="col-12">
+                <label for="canal_recordatorio" class="form-label fw-semibold">
+                  <i class="fas fa-paper-plane me-1 text-success"></i>Canal de envío
+                </label>
+                <select id="canal_recordatorio" name="canal_recordatorio" class="form-select">
+                  <option value="EMAIL" {% if orden.canal_recordatorio == "EMAIL" %}selected{% endif %}>
+                    Correo electrónico ({{ orden.cliente.email|default:"sin email registrado" }})
+                  </option>
+                  <option value="WHATSAPP" {% if orden.canal_recordatorio == "WHATSAPP" %}selected{% endif %}>
+                    WhatsApp ({{ orden.cliente.telefono|default:"sin teléfono registrado" }})
+                  </option>
+                  <option value="AMBOS" {% if orden.canal_recordatorio == "AMBOS" %}selected{% endif %}>
+                    Correo y WhatsApp
+                  </option>
+                </select>
+              </div>
+            </div><!-- /row -->
+
+            <div class="alert alert-info mt-3 mb-0 small">
+              <i class="fas fa-info-circle me-1"></i>
+              El recordatorio se enviará automáticamente cuando se acerque la fecha programada.
+              Kilometraje actual del vehículo: <strong>{{ orden.vehiculo.kilometraje_actual|default:0 }} km</strong>.
+            </div>
+          </div><!-- /campos_recordatorio -->
+
+        </div><!-- /card-body -->
+
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{% url 'ordenes:detalle' orden.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times me-1"></i>Cancelar
+          </a>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-flag-checkered me-1"></i>Confirmar finalización
+          </button>
+        </div>
+      </div><!-- /card -->
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const toggle = document.getElementById('requiere_recordatorio');
+    const campos = document.getElementById('campos_recordatorio');
+
+    function actualizar() {
+      campos.style.display = toggle.checked ? 'block' : 'none';
+    }
+
+    toggle.addEventListener('change', actualizar);
+    actualizar();  // estado inicial
+  })();
+</script>
+{% endblock %}

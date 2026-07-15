@@ -8,7 +8,7 @@
   body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #222; }
 
   /* HEADER */
-  .header { width: 100%; border-bottom: 3px solid #d97706; padding-bottom: 8px; margin-bottom: 10px; }
+  .header { width: 100%; padding-bottom: 8px; margin-bottom: 10px; }
   .taller-nombre { font-size: 16pt; font-weight: bold; color: #d97706; }
   .taller-sub { font-size: 8pt; color: #555; margin-top: 2px; }
   .doc-titulo { font-size: 14pt; font-weight: bold; color: #d97706; text-align: right; }
@@ -25,7 +25,7 @@
 
   /* SECCIONES */
   .seccion-titulo { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #d97706;
-    border-bottom: 1px solid #d97706; padding-bottom: 2px; margin-bottom: 5px; margin-top: 10px; }
+    margin-bottom: 4px; margin-top: 10px; }
 
   .info-grid { width: 100%; border-collapse: collapse; }
   .info-grid td { padding: 2px 4px; font-size: 8.5pt; vertical-align: top; }
@@ -45,12 +45,12 @@
   .badge-repuesto { background: #e2e8f0; color: #475569; }
 
   /* TOTALES */
-  .totales-table { width: 210px; float: right; margin-top: 8px; font-size: 9pt; border-collapse: collapse; }
+  .totales-wrap { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .totales-table { width: 220px; font-size: 9pt; border-collapse: collapse; }
   .totales-table td { padding: 3px 6px; }
   .totales-table tr.total-final { background: #d97706; color: white; font-weight: bold; font-size: 10pt; }
   .totales-table td.label { color: #555; }
   .totales-table td.valor { text-align: right; }
-  .clearfix::after { content: ""; display: table; clear: both; }
 
   /* CAJAS */
   .obs-box { border: 1px solid #e5e7eb; border-radius: 4px; padding: 6px 8px; min-height: 35px;
@@ -117,8 +117,7 @@
 <table class="two-col">
   <tr>
     <td style="width:50%">
-      <div class="seccion-titulo">Datos del Cliente</div>
-      <table class="info-grid">
+      <div class="seccion-titulo">Datos del Cliente</div>      <table class="info-grid">
         <tr><td class="info-label">Nombres:</td><td>{{ orden.cliente.nombres }} {{ orden.cliente.apellidos }}</td></tr>
         <tr><td class="info-label">{{ orden.cliente.get_tipo_documento_display }}:</td><td>{{ orden.cliente.numero_documento }}</td></tr>
         <tr><td class="info-label">Teléfono:</td><td>{{ orden.cliente.telefono }}</td></tr>
@@ -127,10 +126,9 @@
       </table>
     </td>
     <td style="width:50%">
-      <div class="seccion-titulo">Datos del Vehículo</div>
-      <table class="info-grid">
+      <div class="seccion-titulo">Datos del Vehículo</div>      <table class="info-grid">
         <tr><td class="info-label">Placa:</td><td><strong>{{ orden.vehiculo.placa }}</strong></td></tr>
-        <tr><td class="info-label">Marca / Modelo:</td><td>{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</td></tr>
+        <tr><td class="info-label">Marca / Modelo:</td><td>{{ orden.vehiculo.get_marca_display }} {{ orden.vehiculo.modelo }}</td></tr>
         <tr><td class="info-label">Año / Color:</td><td>{{ orden.vehiculo.anio }} / {{ orden.vehiculo.color|default:"—" }}</td></tr>
         <tr><td class="info-label">Kilometraje:</td><td>{{ orden.kilometraje_ingreso|default:0 }} km</td></tr>
         {% if orden.vehiculo.numero_motor %}<tr><td class="info-label">N° Motor:</td><td>{{ orden.vehiculo.numero_motor }}</td></tr>{% endif %}
@@ -141,8 +139,7 @@
 </table>
 
 <!-- DATOS DE LA ORDEN -->
-<div class="seccion-titulo">Datos de la Orden</div>
-<table class="info-grid" style="width:100%">
+<div class="seccion-titulo">Datos de la Orden</div><table class="info-grid" style="width:100%">
   <tr>
     <td class="info-label">Tipo de trabajo:</td>
     <td style="width:25%">{{ orden.get_tipo_trabajo_display }}</td>
@@ -161,19 +158,16 @@
 <table class="two-col" style="margin-top:8px">
   <tr>
     <td style="width:50%">
-      <div class="seccion-titulo">Síntomas Reportados por el Cliente</div>
-      <div class="obs-box">{{ orden.descripcion_problema }}</div>
+      <div class="seccion-titulo">Síntomas Reportados por el Cliente</div>      <div class="obs-box">{{ orden.descripcion_problema }}</div>
     </td>
     <td style="width:50%">
-      <div class="seccion-titulo">Diagnóstico Técnico</div>
-      <div class="obs-box">{{ orden.diagnostico|default:"Pendiente" }}</div>
+      <div class="seccion-titulo">Diagnóstico Técnico</div>      <div class="obs-box">{{ orden.diagnostico|default:"Pendiente" }}</div>
     </td>
   </tr>
 </table>
 
 <!-- TABLA DE TRABAJOS -->
-<div class="seccion-titulo">Trabajos Autorizados / Ítems</div>
-<table class="tabla-trabajos">
+<div class="seccion-titulo">Trabajos Autorizados / Ítems</div><table class="tabla-trabajos">
   <thead>
     <tr>
       <th style="width:70px">Tipo</th>
@@ -203,44 +197,58 @@
 </table>
 
 <!-- TOTALES -->
-<div class="clearfix">
-  <table class="totales-table">
-    <tr>
-      <td class="label">Mano de obra:</td>
-      <td class="valor">$ {{ orden.costo_mano_obra|floatformat:2 }}</td>
-    </tr>
-    <tr>
-      <td class="label">Repuestos:</td>
-      <td class="valor">$ {{ orden.costo_repuestos|floatformat:2 }}</td>
-    </tr>
-    {% if orden.descuento %}
-    <tr>
-      <td class="label">Descuento:</td>
-      <td class="valor" style="color:#b91c1c">- $ {{ orden.descuento|floatformat:2 }}</td>
-    </tr>
-    {% endif %}
-    <tr class="total-final">
-      <td style="color:white">TOTAL:</td>
-      <td class="valor">$ {{ orden.costo_total|floatformat:2 }}</td>
-    </tr>
-  </table>
-</div>
+<table class="totales-wrap">
+  <tr>
+    <td style="width:55%">&nbsp;</td>
+    <td style="width:45%">
+      <table class="totales-table" style="width:100%">
+        <tr>
+          <td class="label">Mano de obra:</td>
+          <td class="valor">$ {{ orden.costo_mano_obra|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td class="label">Repuestos:</td>
+          <td class="valor">$ {{ orden.costo_repuestos|floatformat:2 }}</td>
+        </tr>
+        {% if orden.descuento %}
+        <tr>
+          <td class="label">Descuento:</td>
+          <td class="valor" style="color:#b91c1c">- $ {{ orden.descuento|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="label">Base imponible:</td>
+          <td class="valor">$ {{ orden.base_con_descuento|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td class="label">IVA ({{ orden.porcentaje_iva }}%):</td>
+          <td class="valor">$ {{ orden.iva_monto|floatformat:2 }}</td>
+        </tr>
+        <tr class="total-final">
+          <td style="color:white">TOTAL:</td>
+          <td class="valor">$ {{ orden.costo_total|floatformat:2 }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
 <!-- AUTORIZACIÓN DEL CLIENTE -->
-{% if orden.autorizacion_cliente %}
-<div class="seccion-titulo" style="margin-top:15px">Autorización del Cliente</div>
-<div class="obs-box">{{ orden.autorizacion_cliente }}</div>
-{% endif %}
+<div class="seccion-titulo" style="margin-top:15px">Autorización del Cliente</div><div class="obs-box">
+  {% if orden.autorizacion_cliente %}
+    ✔ El cliente autorizó los trabajos indicados en esta orden.
+  {% else %}
+    ✘ Pendiente de autorización del cliente.
+  {% endif %}
+</div>
 
 <!-- OBSERVACIONES -->
 {% if orden.observaciones %}
-<div class="seccion-titulo">Observaciones</div>
-<div class="obs-box">{{ orden.observaciones }}</div>
+<div class="seccion-titulo">Observaciones</div><div class="obs-box">{{ orden.observaciones }}</div>
 {% endif %}
 
 <!-- CONDICIONES DEL TALLER -->
-<div class="seccion-titulo" style="margin-top:12px">Condiciones del Servicio</div>
-<div class="condiciones-box">
+<div class="seccion-titulo" style="margin-top:12px">Condiciones del Servicio</div><div class="condiciones-box">
   1. El taller no se hace responsable por objetos dejados dentro del vehículo. &nbsp;
   2. Los repuestos originales quedan en poder del cliente si los solicita. &nbsp;
   3. El cliente autoriza al taller a realizar los trabajos indicados en esta orden. &nbsp;

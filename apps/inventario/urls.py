@@ -16,4 +16,5 @@ urlpatterns = [
     path("categorias/nueva/", views.crear_categoria, name="crear_categoria"),
     path("categorias/<int:pk>/editar/", views.editar_categoria, name="editar_categoria"),
     path("movimiento/registrar/", views.registrar_movimiento, name="registrar_movimiento"),
+    path("repuestos/buscar/", views.buscar_repuestos, name="buscar_repuestos"),
 ]
